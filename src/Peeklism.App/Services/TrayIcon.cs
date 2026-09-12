@@ -34,8 +34,9 @@ public sealed class TrayIcon : IDisposable
     private const uint TrackRightButton = 0x0002;
     private const uint TrackReturnCommand = 0x0100;
     private const uint CommandPause = 1;
-    private const uint CommandAbout = 2;
-    private const uint CommandExit = 3;
+    private const uint CommandLaunchAtLogin = 2;
+    private const uint CommandAbout = 3;
+    private const uint CommandExit = 4;
     private const string HostWindowClassName = "PeeklismTrayHost";
 
     private readonly NativeMethods.WindowProcedure _windowProcedure;
@@ -59,12 +60,18 @@ public sealed class TrayIcon : IDisposable
     /// <summary>Raised when the user asks to pause or resume previewing.</summary>
     public event EventHandler? PauseToggled;
 
+    /// <summary>Raised when the user asks to start or stop starting Peeklism at sign-in.</summary>
+    public event EventHandler? LaunchAtLoginToggled;
+
     public event EventHandler? AboutRequested;
 
     public event EventHandler? ExitRequested;
 
     /// <summary>Whether previewing is paused, shown as a tick in the menu.</summary>
     public bool IsPaused { get; set; }
+
+    /// <summary>Whether Peeklism starts with Windows, shown as a tick in the menu.</summary>
+    public bool LaunchesAtLogin { get; set; }
 
     public void Dispose()
     {
@@ -188,6 +195,11 @@ public sealed class TrayIcon : IDisposable
                 MenuString | (IsPaused ? MenuChecked : 0),
                 CommandPause,
                 "暫停預覽");
+            NativeMethods.AppendMenuW(
+                menu,
+                MenuString | (LaunchesAtLogin ? MenuChecked : 0),
+                CommandLaunchAtLogin,
+                "登入 Windows 時啟動");
             NativeMethods.AppendMenuW(menu, MenuSeparator, 0, null);
             NativeMethods.AppendMenuW(menu, MenuString, CommandAbout, "關於 Peeklism");
             NativeMethods.AppendMenuW(menu, MenuSeparator, 0, null);
@@ -207,6 +219,9 @@ public sealed class TrayIcon : IDisposable
             {
                 case CommandPause:
                     PauseToggled?.Invoke(this, EventArgs.Empty);
+                    break;
+                case CommandLaunchAtLogin:
+                    LaunchAtLoginToggled?.Invoke(this, EventArgs.Empty);
                     break;
                 case CommandAbout:
                     AboutRequested?.Invoke(this, EventArgs.Empty);

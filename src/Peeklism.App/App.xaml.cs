@@ -15,6 +15,7 @@ public partial class App : Application
     private PreviewWindow? _window;
     private PreviewController? _controller;
     private TrayIcon? _tray;
+    private readonly LoginStartupService _loginStartup = new();
     private bool _isExiting;
 
     public App() => InitializeComponent();
@@ -53,8 +54,9 @@ public partial class App : Application
         }
 
         _controller = new PreviewController(_window, new ShellSelectionProvider(_shellExecutor));
-        _tray = new TrayIcon();
+        _tray = new TrayIcon { LaunchesAtLogin = _loginStartup.IsEnabled() };
         _tray.PauseToggled += OnPauseToggled;
+        _tray.LaunchAtLoginToggled += OnLaunchAtLoginToggled;
         _tray.AboutRequested += OnAboutRequested;
         _tray.ExitRequested += (_, _) => ExitApplication();
 
@@ -77,6 +79,28 @@ public partial class App : Application
         _tray.IsPaused = paused;
         _tray.UpdateTooltip(paused ? "Peeklism（已暫停）" : "Peeklism");
         PeekLog.Write($"previewing {(paused ? "paused" : "resumed")}");
+    }
+
+    private void OnLaunchAtLoginToggled(object? sender, EventArgs args)
+    {
+        if (_tray is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var enable = !_tray.LaunchesAtLogin;
+            _loginStartup.SetEnabled(enable);
+            _tray.LaunchesAtLogin = enable;
+            PeekLog.Write($"launch at login {(enable ? "enabled" : "disabled")}");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or UnauthorizedAccessException)
+        {
+            // The tick simply stays where it was; there is no window here to report into.
+            PeekLog.Write($"launch at login failed: {exception.Message}");
+            _tray.LaunchesAtLogin = _loginStartup.IsEnabled();
+        }
     }
 
     private void OnAboutRequested(object? sender, EventArgs args)
