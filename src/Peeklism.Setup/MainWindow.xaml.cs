@@ -64,7 +64,16 @@ public sealed partial class MainWindow : Window
         {
             if (!_uninstall)
             {
-                try { Process.Start(new ProcessStartInfo(Path.Combine(InstallPath.Text, "Peeklism.App.exe")) { UseShellExecute = true }); }
+                // Without an explicit working directory the app inherits the setup's, pinning
+                // whatever folder the installer was run from for as long as the app lives.
+                try
+                {
+                    Process.Start(new ProcessStartInfo(Path.Combine(InstallPath.Text, "Peeklism.App.exe"))
+                    {
+                        UseShellExecute = true,
+                        WorkingDirectory = InstallPath.Text,
+                    });
+                }
                 catch (Exception ex) { ShowError(ex); return; }
             }
             Close();
