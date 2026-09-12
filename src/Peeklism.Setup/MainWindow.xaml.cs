@@ -32,7 +32,7 @@ public sealed partial class MainWindow : Window
         var args = Environment.GetCommandLineArgs();
         _uninstall = args.Contains("--uninstall");
         _updating = !_uninstall && InstallationService.InstalledPath is not null;
-        VersionText.Text = $"安裝程式 {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)}";
+        VersionText.Text = $"Peeklism {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)}";
         InstallPath.Text = InstallationService.InstalledPath ?? InstallationService.DefaultPath;
         if (_uninstall)
         {
