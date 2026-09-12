@@ -6,7 +6,6 @@
   <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   <SelfContained>true</SelfContained>
   <PublishSingleFile>false</PublishSingleFile>
-  <Version Condition="'$(SetupVersion)' != ''">$(SetupVersion)</Version>
   <DebugType>embedded</DebugType>
   <ApplicationManifest>..\Peeklism.App\app.manifest</ApplicationManifest>
  </PropertyGroup>

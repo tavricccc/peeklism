@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version Condition="'$(SetupVersion)' != ''">$(SetupVersion)</Version>
     <OutputType>WinExe</OutputType>
     <ApplicationIcon>..\..\docs\assets\peeklism.ico</ApplicationIcon>
     <ApplicationManifest>..\Peeklism.App\app.manifest</ApplicationManifest>

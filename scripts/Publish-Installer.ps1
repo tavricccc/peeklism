@@ -1,6 +1,7 @@
+# One version for the whole product: the installer is not released separately from the
+# app it installs, so a second version number would only ever be a thing to keep in sync.
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.1.0',
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$SetupVersion = '1.0.0'
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.1.0'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -34,8 +35,8 @@ try {
     $setup = Join-Path $work 'setup'
     $launcher = Join-Path $work 'launcher'
     Invoke-Dotnet @('publish', 'src/Peeklism.App/Peeklism.App.csproj', '-c', 'Release', '-p:Platform=x64', "-p:AppVersion=$Version", '-o', $app)
-    Invoke-Dotnet @('publish', 'src/Peeklism.Setup/Peeklism.Setup.csproj', '-c', 'Release', '-p:Platform=x64', "-p:AppVersion=$Version", "-p:SetupVersion=$SetupVersion", '-o', $setup)
-    Invoke-Dotnet @('publish', 'src/Peeklism.Bootstrap/Peeklism.Bootstrap.csproj', '-c', 'Release', "-p:SetupVersion=$SetupVersion", '-o', $launcher)
+    Invoke-Dotnet @('publish', 'src/Peeklism.Setup/Peeklism.Setup.csproj', '-c', 'Release', '-p:Platform=x64', "-p:AppVersion=$Version", '-o', $setup)
+    Invoke-Dotnet @('publish', 'src/Peeklism.Bootstrap/Peeklism.Bootstrap.csproj', '-c', 'Release', "-p:AppVersion=$Version", '-o', $launcher)
     foreach ($name in @('Peeklism.Install.dll', 'Peeklism.Install.deps.json', 'Peeklism.Install.runtimeconfig.json')) {
         Copy-Item -LiteralPath (Join-Path $launcher $name) -Destination $app
     }
@@ -58,7 +59,7 @@ try {
         if (!$files.Contains($required)) { throw "Missing $required" }
     }
     # Finish the entire release before touching current. Old installers are never pruned.
-    @{ Product = 'Peeklism'; Version = $Version; SetupVersion = $SetupVersion; Files = $files } | ConvertTo-Json -Depth 5 |
+    @{ Product = 'Peeklism'; Version = $Version; Files = $files } | ConvertTo-Json -Depth 5 |
         Set-Content -LiteralPath (Join-Path $app 'peeklism-install.json') -Encoding utf8
     [IO.Directory]::CreateDirectory($stagedRelease) | Out-Null
     $stagedResources = Join-Path $stagedRelease 'resources'
@@ -110,7 +111,7 @@ try {
         throw
     }
     Write-Output "Installer folder: $releaseRoot"
-    Write-Output "Run Peeklism.Setup.exe (Setup $SetupVersion, App $Version)."
+    Write-Output "Run Peeklism.Setup.exe (version $Version)."
     if ($archive) { Write-Output "Previous installer preserved: $archive" }
 } finally {
     Pop-Location

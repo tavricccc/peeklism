@@ -22,7 +22,9 @@ public static class PreviewContentFactory
     private const string ImageGlyph = "";
     private const string VideoGlyph = "";
     private const string AudioGlyph = "";
-    private const string TextGlyph = "";
+    private const string TextGlyph = "";
+    private const string MarkdownGlyph = "";
+    private const string PdfGlyph = "";
     private const string FolderGlyph = "";
     private const string UnknownGlyph = "";
     private const string ErrorGlyph = "";
@@ -49,6 +51,8 @@ public static class PreviewContentFactory
                 FileKind.Video => CreateMedia(path, title, VideoGlyph, 960, 600),
                 FileKind.Audio => CreateMedia(path, title, AudioGlyph, 640, 360),
                 FileKind.Text => CreateText(path, title),
+                FileKind.Markdown => CreateMarkdown(path, title),
+                FileKind.Pdf => CreatePdf(path, title),
                 FileKind.Folder => CreateFolder(path, title),
                 _ => CreateFallback(path, title),
             };
@@ -173,6 +177,115 @@ public static class PreviewContentFactory
         }
 
         return new PreviewContent(scroller, title, subtitle, TextGlyph, 900, 700);
+    }
+
+    private static PreviewContent CreateMarkdown(string path, string title)
+    {
+        var text = ReadTextPrefix(path, out var truncated);
+        var scroller = new ScrollViewer
+        {
+            Content = MarkdownRenderer.Render(text),
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollMode = ScrollMode.Disabled,
+        };
+
+        var subtitle = DescribePath(path);
+        if (truncated)
+        {
+            subtitle += "　·　僅顯示開頭 256 KB";
+        }
+
+        // Narrow enough that prose stays at a comfortable measure rather than running the
+        // full width of a wide display.
+        return new PreviewContent(scroller, title, subtitle, MarkdownGlyph, 760, 740);
+    }
+
+    private static PreviewContent CreatePdf(string path, string title)
+    {
+        var pages = new StackPanel { Spacing = 14, Margin = new Thickness(14) };
+        pages.Children.Add(new ProgressRing
+        {
+            IsActive = true,
+            Width = 28,
+            Height = 28,
+            Margin = new Thickness(0, 40, 0, 0),
+        });
+        var scroller = new ScrollViewer
+        {
+            Content = pages,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollMode = ScrollMode.Disabled,
+        };
+
+        // Rendering is asynchronous by nature, so the window opens immediately and the
+        // pages arrive into it. Waiting for the first page would cost the whole point of
+        // pressing space.
+        _ = RenderPdfPagesAsync(path, pages);
+        return new PreviewContent(scroller, title, DescribePath(path), PdfGlyph, 820, 780);
+    }
+
+    /// <summary>
+    /// Renders the first pages of a PDF into the panel, in order.
+    /// </summary>
+    /// <remarks>
+    /// Only a bounded number of pages is rendered: a preview is for deciding whether this
+    /// is the right document, and rasterising a 400-page report would hold the file and
+    /// burn memory for something nobody is going to scroll through here.
+    /// </remarks>
+    private static async Task RenderPdfPagesAsync(string path, Panel host)
+    {
+        const uint pageLimit = 25;
+        const uint renderWidth = 1400;
+        try
+        {
+            var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(path);
+            var document = await Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(file);
+            var count = Math.Min(document.PageCount, pageLimit);
+            for (uint index = 0; index < count; index++)
+            {
+                using var page = document.GetPage(index);
+                using var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+                await page.RenderToStreamAsync(
+                    stream,
+                    new Windows.Data.Pdf.PdfPageRenderOptions { DestinationWidth = renderWidth });
+                stream.Seek(0);
+                var bitmap = new BitmapImage();
+                await bitmap.SetSourceAsync(stream);
+
+                if (index == 0)
+                {
+                    host.Children.Clear();
+                }
+
+                host.Children.Add(new Border
+                {
+                    CornerRadius = new CornerRadius(4),
+                    Background = new SolidColorBrush(Microsoft.UI.Colors.White),
+                    Child = new Image { Source = bitmap, Stretch = Stretch.Uniform },
+                });
+            }
+
+            if (document.PageCount > count)
+            {
+                host.Children.Add(new TextBlock
+                {
+                    Text = $"共 {document.PageCount} 頁，預覽顯示前 {count} 頁。",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                    FontSize = 12,
+                    Margin = new Thickness(0, 6, 0, 10),
+                });
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or ArgumentException
+            or System.Runtime.InteropServices.COMException)
+        {
+            // A password-protected or damaged file surfaces here as a COM failure.
+            host.Children.Clear();
+            host.Children.Add(CreateMessage($"無法顯示這個 PDF：{exception.Message}"));
+        }
     }
 
     private static PreviewContent CreateFolder(string path, string title)

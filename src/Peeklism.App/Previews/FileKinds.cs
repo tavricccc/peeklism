@@ -7,6 +7,8 @@ public enum FileKind
     Video,
     Audio,
     Text,
+    Markdown,
+    Pdf,
     Folder,
 }
 
@@ -29,9 +31,14 @@ public static class FileKinds
         ".mp3", ".m4a", ".wav", ".flac", ".aac", ".wma", ".ogg", ".opus",
     };
 
+    private static readonly HashSet<string> Markdown = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".md", ".markdown", ".mdx",
+    };
+
     private static readonly HashSet<string> Text = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".txt", ".md", ".markdown", ".log", ".json", ".xml", ".yml", ".yaml", ".ini", ".cfg",
+        ".txt", ".log", ".json", ".xml", ".yml", ".yaml", ".ini", ".cfg",
         ".csv", ".tsv", ".html", ".htm", ".css", ".js", ".ts", ".tsx", ".jsx", ".cs", ".c",
         ".h", ".cpp", ".hpp", ".py", ".rb", ".go", ".rs", ".java", ".kt", ".swift", ".sh",
         ".ps1", ".bat", ".sql", ".toml", ".gitignore", ".editorconfig", ".props", ".targets",
@@ -52,6 +59,8 @@ public static class FileKinds
             return FileKind.Unknown;
         }
 
+        if (Markdown.Contains(extension)) return FileKind.Markdown;
+        if (extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase)) return FileKind.Pdf;
         if (Images.Contains(extension)) return FileKind.Image;
         if (Videos.Contains(extension)) return FileKind.Video;
         if (Audio.Contains(extension)) return FileKind.Audio;

@@ -17,13 +17,7 @@ namespace Peeklism.App.Services;
 /// </remarks>
 public sealed class NoActivateWindow
 {
-    private const int StyleIndex = -16;
     private const int ExtendedStyleIndex = -20;
-    private const long CaptionStyle = 0x00C00000L;
-    private const long ThickFrameStyle = 0x00040000L;
-    private const long MinimizeBoxStyle = 0x00020000L;
-    private const long MaximizeBoxStyle = 0x00010000L;
-    private const long SystemMenuStyle = 0x00080000L;
     private const long AppWindowExtendedStyle = 0x00040000L;
     private const long ToolWindowExtendedStyle = 0x00000080L;
     private const long NoActivateExtendedStyle = 0x08000000L;
@@ -41,23 +35,27 @@ public sealed class NoActivateWindow
 
     public void Configure()
     {
-        var style = NativeMethods.GetWindowLongPtrW(_windowHandle, StyleIndex).ToInt64();
-        style &= ~(CaptionStyle | ThickFrameStyle | MinimizeBoxStyle | MaximizeBoxStyle | SystemMenuStyle);
-        NativeMethods.SetWindowLongPtrW(_windowHandle, StyleIndex, new nint(style));
-
-        var extendedStyle = NativeMethods.GetWindowLongPtrW(_windowHandle, ExtendedStyleIndex).ToInt64();
-        extendedStyle = (extendedStyle & ~AppWindowExtendedStyle)
-            | ToolWindowExtendedStyle
-            | NoActivateExtendedStyle;
-        NativeMethods.SetWindowLongPtrW(_windowHandle, ExtendedStyleIndex, new nint(extendedStyle));
-
+        // The window keeps a real frame and only hides its title bar. Stripping WS_CAPTION
+        // and WS_THICKFRAME by hand does produce a borderless window, but DWM then stops
+        // treating it as an ordinary window: no drop shadow, and no open or close
+        // transition. Letting the presenter hide the title bar keeps both, for free and in
+        // whatever form the user's Windows is currently using.
         if (_appWindow.Presenter is OverlappedPresenter presenter)
         {
+            presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false);
             presenter.IsResizable = false;
             presenter.IsMaximizable = false;
             presenter.IsMinimizable = false;
             presenter.IsAlwaysOnTop = true;
         }
+
+        // Only the extended styles are ours: stay off the taskbar and out of Alt+Tab, and
+        // never take activation.
+        var extendedStyle = NativeMethods.GetWindowLongPtrW(_windowHandle, ExtendedStyleIndex).ToInt64();
+        extendedStyle = (extendedStyle & ~AppWindowExtendedStyle)
+            | ToolWindowExtendedStyle
+            | NoActivateExtendedStyle;
+        NativeMethods.SetWindowLongPtrW(_windowHandle, ExtendedStyleIndex, new nint(extendedStyle));
 
         var cornerPreference = 2; // DWMWCP_ROUND
         NativeMethods.DwmSetWindowAttribute(_windowHandle, 33, ref cornerPreference, sizeof(int));
