@@ -1,0 +1,29 @@
+# Build output
+.dotnet/
+bin/
+obj/
+artifacts/
+TestResults/
+
+# IDE and user-local state
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Packages and generated deployment output
+packages/
+publish/
+*.nupkg
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local credentials and environment overrides
+.env
+.env.*
+!.env.example
