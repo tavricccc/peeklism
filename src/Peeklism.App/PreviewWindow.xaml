@@ -1,0 +1,47 @@
+<Window
+    x:Class="Peeklism.App.PreviewWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Peeklism">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+    <Border
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid
+                Padding="16,10"
+                ColumnSpacing="12"
+                Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock
+                        x:Name="TitleText"
+                        FontFamily="{ThemeResource ContentControlThemeFontFamily}"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        x:Name="SubtitleText"
+                        FontSize="12"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1" Padding="1" CornerRadius="0,0,8,8">
+                <ContentPresenter x:Name="ContentHost" />
+            </Border>
+        </Grid>
+    </Border>
+</Window>

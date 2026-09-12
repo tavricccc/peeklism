@@ -1,0 +1,212 @@
+using Microsoft.UI.Text;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Media.Core;
+
+namespace Peeklism.App.Previews;
+
+/// <summary>
+/// Builds the preview for a path. Every branch is synchronous and cheap: the window has to
+/// be on screen within a frame or two of the space bar, so nothing here may wait on I/O
+/// beyond opening a file, and nothing may throw — an unreadable file still gets a preview
+/// showing what Peeklism does know about it.
+/// </summary>
+public static class PreviewContentFactory
+{
+    /// <summary>Enough text to fill several screens without reading a multi-gigabyte log.</summary>
+    private const int TextPreviewByteLimit = 256 * 1024;
+
+    public static PreviewContent Create(string path)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        var title = Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar));
+        if (string.IsNullOrEmpty(title))
+        {
+            title = path;
+        }
+
+        try
+        {
+            return FileKinds.Classify(path) switch
+            {
+                FileKind.Image => CreateImage(path, title),
+                FileKind.Video => CreateMedia(path, title, 960, 600),
+                FileKind.Audio => CreateMedia(path, title, 640, 400),
+                FileKind.Text => CreateText(path, title),
+                FileKind.Folder => CreateFolder(path, title),
+                _ => CreateFallback(path, title),
+            };
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or ArgumentException)
+        {
+            return new PreviewContent(
+                CreateMessage($"無法預覽此項目：{exception.Message}"),
+                title,
+                DescribePath(path),
+                640,
+                400);
+        }
+    }
+
+    private static PreviewContent CreateImage(string path, string title)
+    {
+        var image = new Image
+        {
+            Source = new BitmapImage(new Uri(path)),
+            Stretch = Stretch.Uniform,
+            Margin = new Thickness(12),
+        };
+        return new PreviewContent(image, title, DescribePath(path), 960, 680);
+    }
+
+    private static PreviewContent CreateMedia(string path, string title, int width, int height)
+    {
+        var player = new MediaPlayerElement
+        {
+            Source = MediaSource.CreateFromUri(new Uri(path)),
+            AutoPlay = true,
+            AreTransportControlsEnabled = true,
+        };
+
+        // Muted by default: a preview is often opened in a quiet room, and one unexpected
+        // burst of sound costs more trust than the extra key press to unmute.
+        player.MediaPlayer.IsMuted = true;
+        return new PreviewContent(player, title, DescribePath(path), width, height);
+    }
+
+    private static PreviewContent CreateText(string path, string title)
+    {
+        var text = ReadTextPrefix(path, out var truncated);
+        var block = new TextBlock
+        {
+            Text = text,
+            FontFamily = new FontFamily("Cascadia Mono, Consolas, Courier New"),
+            FontSize = 13,
+            IsTextSelectionEnabled = true,
+            TextWrapping = TextWrapping.NoWrap,
+            Margin = new Thickness(16, 12, 16, 16),
+        };
+        var scroller = new ScrollViewer
+        {
+            Content = block,
+            HorizontalScrollMode = ScrollMode.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+        };
+
+        var subtitle = DescribePath(path);
+        if (truncated)
+        {
+            subtitle += "　·　僅顯示開頭 256 KB";
+        }
+
+        return new PreviewContent(scroller, title, subtitle, 900, 700);
+    }
+
+    private static PreviewContent CreateFolder(string path, string title)
+    {
+        var entries = new List<string>();
+        var total = 0;
+        foreach (var entry in Directory.EnumerateFileSystemEntries(path))
+        {
+            total++;
+            if (entries.Count < 300)
+            {
+                entries.Add((Directory.Exists(entry) ? "📁  " : "📄  ") + Path.GetFileName(entry));
+            }
+        }
+
+        var list = new ListView
+        {
+            ItemsSource = entries,
+            SelectionMode = ListViewSelectionMode.None,
+            Margin = new Thickness(8),
+        };
+        var shown = entries.Count < total ? $"　·　顯示前 {entries.Count} 項" : string.Empty;
+        return new PreviewContent(list, title, $"資料夾　·　{total} 個項目{shown}", 640, 620);
+    }
+
+    private static PreviewContent CreateFallback(string path, string title)
+    {
+        var kind = Path.GetExtension(path).TrimStart('.').ToUpperInvariant();
+        var panel = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Spacing = 10,
+        };
+        panel.Children.Add(new FontIcon
+        {
+            Glyph = "",
+            FontSize = 48,
+            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = string.IsNullOrEmpty(kind) ? "沒有可用的預覽" : $"{kind} 檔案沒有可用的預覽",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            FontSize = 14,
+        });
+        return new PreviewContent(panel, title, DescribePath(path), 560, 400);
+    }
+
+    private static TextBlock CreateMessage(string message) => new()
+    {
+        Text = message,
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+        TextWrapping = TextWrapping.Wrap,
+        Margin = new Thickness(24),
+        FontWeight = FontWeights.SemiBold,
+    };
+
+    private static string ReadTextPrefix(string path, out bool truncated)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        truncated = stream.Length > TextPreviewByteLimit;
+        var buffer = new byte[(int)Math.Min(stream.Length, TextPreviewByteLimit)];
+        var read = stream.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
+        return System.Text.Encoding.UTF8.GetString(buffer, 0, read);
+    }
+
+    private static string DescribePath(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            if (!info.Exists)
+            {
+                return path;
+            }
+
+            var extension = info.Extension.TrimStart('.').ToUpperInvariant();
+            var kind = string.IsNullOrEmpty(extension) ? "檔案" : $"{extension} 檔案";
+            return $"{kind}　·　{FormatSize(info.Length)}　·　{info.LastWriteTime:yyyy/MM/dd HH:mm}";
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or ArgumentException)
+        {
+            return path;
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double size = bytes;
+        var unit = 0;
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+
+        return unit == 0 ? $"{bytes} B" : $"{size:0.#} {units[unit]}";
+    }
+}
