@@ -44,6 +44,22 @@ public sealed class PreviewController : IDisposable
         SyncHookState();
     }
 
+    /// <summary>
+    /// Whether the space bar is being watched at all. Pausing removes the keyboard hook
+    /// rather than merely ignoring it, so a paused Peeklism is genuinely out of the way.
+    /// </summary>
+    public bool IsEnabled { get; private set; } = true;
+
+    public void SetEnabled(bool enabled)
+    {
+        IsEnabled = enabled;
+        SyncHookState();
+        if (!enabled)
+        {
+            _dispatcher.TryEnqueue(Hide);
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -77,7 +93,7 @@ public sealed class PreviewController : IDisposable
     /// </summary>
     private void SyncHookState()
     {
-        var wanted = _foreground.CurrentWindowType != FocusedWindowType.Invalid;
+        var wanted = IsEnabled && _foreground.CurrentWindowType != FocusedWindowType.Invalid;
         PeekLog.Write($"hook wanted={wanted} installed={_keyboard.IsInstalled}");
         try
         {

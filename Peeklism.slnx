@@ -3,7 +3,13 @@
     <Project Path="src/Peeklism.App/Peeklism.App.csproj">
       <Platform Project="x64" />
     </Project>
+    <Project Path="src/Peeklism.Bootstrap/Peeklism.Bootstrap.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="src/Peeklism.Core/Peeklism.Core.csproj" />
+    <Project Path="src/Peeklism.Setup/Peeklism.Setup.csproj">
+      <Platform Project="x64" />
+    </Project>
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Peeklism.Tests/Peeklism.Tests.csproj" />

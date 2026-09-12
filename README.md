@@ -16,6 +16,20 @@ Peeklism 是獨立產品，與 [Flowlism](https://github.com/tavricccc/flowlism)
 
 檔案總管與桌面不需要注入程式碼：Explorer 會把自己的視窗註冊到行程外可見的 shell 視窗集合，`IShellWindows` 直接就能列舉。開啟檔案對話框屬於別的行程且不會註冊，必須把原生 DLL 載入對方執行緒才能讀取，這部分之後由 `Peeklism.Native` 處理。
 
+## 系統匣
+
+程式常駐系統匣，右鍵選單可暫停預覽、查看版本或結束。暫停時鍵盤 hook 會被卸下，而不只是忽略按鍵。
+
+## 安裝程式
+
+```
+pwsh -File scripts/Publish-Installer.ps1
+```
+
+產出在 `artifacts/installer/current`：最外層只有 `Peeklism.Setup.exe`，其餘檔案在 `resources` 子資料夾，兩者必須一起保留。預設安裝到 `%LocalAppData%\Programs\Peeklism`。上一版安裝程式會保留在 `artifacts/installer/history`。
+
+腳本需要 **PowerShell 7**（`pwsh`）；Windows PowerShell 5.1 缺少它用到的 API。
+
 ## 手動驗證
 
 ```
