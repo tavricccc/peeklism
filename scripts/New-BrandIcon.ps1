@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
 $assets = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../docs/assets'))
-$sourcePath = Join-Path $assets 'peeklism-icon-fluent.png'
+$sourcePath = Join-Path $assets 'peeklism-logo-concept-v1.png'
 if (!(Test-Path -LiteralPath $sourcePath)) {
     throw "找不到品牌圖：$sourcePath"
 }

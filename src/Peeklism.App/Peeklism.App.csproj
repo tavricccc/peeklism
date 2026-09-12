@@ -18,6 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Peeklism.Core\Peeklism.Core.csproj" />
     <Content Include="..\..\docs\assets\peeklism.ico" Link="Assets\Peeklism.ico" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\docs\assets\peeklism-icon-fluent.png" Link="Assets\Peeklism.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\docs\assets\peeklism-logo-concept-v1.png" Link="Assets\Peeklism.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
