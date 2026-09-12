@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Peeklism.Core.Diagnostics;
 
 namespace Peeklism.Core.Input;
 
@@ -58,6 +59,8 @@ public sealed class KeyboardHook : IDisposable
         {
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         }
+
+        PeekLog.Write("keyboard hook installed");
     }
 
     public void Uninstall()
@@ -69,6 +72,7 @@ public sealed class KeyboardHook : IDisposable
 
         NativeMethods.UnhookWindowsHookEx(_hook);
         _hook = 0;
+        PeekLog.Write("keyboard hook removed");
     }
 
     public void Dispose()
@@ -118,7 +122,7 @@ public sealed class KeyboardHook : IDisposable
         IsDown(VirtualKeyShift) || IsDown(VirtualKeyControl) || IsDown(VirtualKeyAlt)
         || IsDown(VirtualKeyLeftWindows) || IsDown(VirtualKeyRightWindows);
 
-    private static bool IsDown(int virtualKey) => (NativeMethods.GetKeyState(virtualKey) & 0x8000) != 0;
+    private static bool IsDown(int virtualKey) => (NativeMethods.GetAsyncKeyState(virtualKey) & 0x8000) != 0;
 
     private static class NativeMethods
     {
@@ -145,6 +149,6 @@ public sealed class KeyboardHook : IDisposable
         internal static extern nint CallNextHookEx(nint hook, int code, nint messageType, nint data);
 
         [DllImport("user32.dll")]
-        internal static extern short GetKeyState(int virtualKey);
+        internal static extern short GetAsyncKeyState(int virtualKey);
     }
 }

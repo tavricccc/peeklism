@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Peeklism.Core.Diagnostics;
 using Peeklism.Core.Shell;
 
 namespace Peeklism.Core.Input;
@@ -91,6 +92,7 @@ public sealed class ForegroundWatcher : IDisposable
 
         CurrentWindowHandle = windowHandle;
         CurrentWindowType = windowType;
+        PeekLog.Write($"foreground: {windowType} hwnd=0x{windowHandle:X}");
         ShellSurfaceChanged?.Invoke(this, new ShellSurfaceChangedEventArgs(windowType, windowHandle));
     }
 

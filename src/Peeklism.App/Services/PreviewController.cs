@@ -1,4 +1,5 @@
 using Microsoft.UI.Dispatching;
+using Peeklism.Core.Diagnostics;
 using Peeklism.Core.Input;
 using Peeklism.Core.Shell;
 
@@ -77,6 +78,7 @@ public sealed class PreviewController : IDisposable
     private void SyncHookState()
     {
         var wanted = _foreground.CurrentWindowType != FocusedWindowType.Invalid;
+        PeekLog.Write($"hook wanted={wanted} installed={_keyboard.IsInstalled}");
         try
         {
             if (wanted)
@@ -101,6 +103,9 @@ public sealed class PreviewController : IDisposable
     /// </remarks>
     private void OnKeyIntercepted(object? sender, KeyInterceptedEventArgs args)
     {
+        PeekLog.Write(
+            $"key vk=0x{args.VirtualKey:X} modifiers={args.HasModifiers} "
+            + $"surface={_foreground.CurrentWindowType} showing={_window.IsShowing}");
         if (args.HasModifiers || _foreground.CurrentWindowType == FocusedWindowType.Invalid)
         {
             return;
@@ -121,6 +126,7 @@ public sealed class PreviewController : IDisposable
                 // corrupt what the user is typing.
                 if (TextEntryFocus.IsFocused(_foreground.CurrentWindowHandle))
                 {
+                    PeekLog.Write("space passed through: a text field has the shell's focus");
                     return;
                 }
 
@@ -145,6 +151,7 @@ public sealed class PreviewController : IDisposable
         var windowType = _foreground.CurrentWindowType;
         var windowHandle = _foreground.CurrentWindowHandle;
         var selection = _selection.GetSelection(windowType, windowHandle);
+        PeekLog.Write($"selection: count={selection.Count} path={selection.Path ?? "-"}");
         if (!selection.HasPath)
         {
             return;

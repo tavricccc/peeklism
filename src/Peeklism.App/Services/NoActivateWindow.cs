@@ -27,8 +27,6 @@ public sealed class NoActivateWindow
     private const long AppWindowExtendedStyle = 0x00040000L;
     private const long ToolWindowExtendedStyle = 0x00000080L;
     private const long NoActivateExtendedStyle = 0x08000000L;
-    private const int ShowNoActivate = 4;
-    private const int Hide = 0;
     private static readonly nint TopMostWindow = new(-1);
 
     private readonly nint _windowHandle;
@@ -67,7 +65,10 @@ public sealed class NoActivateWindow
 
     public void ShowWithoutActivating()
     {
-        NativeMethods.ShowWindow(_windowHandle, ShowNoActivate);
+        // AppWindow keeps its own visibility state, and a raw ShowWindow leaves that state
+        // disagreeing with the window: the window ends up positioned correctly but without
+        // WS_VISIBLE. Show(activateWindow: false) is the supported way to do exactly this.
+        _appWindow.Show(activateWindow: false);
         NativeMethods.SetWindowPos(
             _windowHandle,
             TopMostWindow,
@@ -78,7 +79,7 @@ public sealed class NoActivateWindow
             0x0001 | 0x0002 | 0x0010 | 0x0040); // NOSIZE | NOMOVE | NOACTIVATE | SHOWWINDOW
     }
 
-    public void HideWindow() => NativeMethods.ShowWindow(_windowHandle, Hide);
+    public void HideWindow() => _appWindow.Hide();
 
     public void MoveOffScreen() => _appWindow.Move(new PointInt32(-32000, -32000));
 
@@ -147,10 +148,6 @@ public sealed class NoActivateWindow
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SetWindowPos(
             nint windowHandle, nint insertAfter, int x, int y, int width, int height, uint flags);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool ShowWindow(nint windowHandle, int command);
 
         [DllImport("user32.dll")]
         internal static extern nint MonitorFromWindow(nint windowHandle, uint fallback);

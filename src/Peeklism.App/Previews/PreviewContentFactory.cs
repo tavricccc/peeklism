@@ -18,6 +18,20 @@ public static class PreviewContentFactory
     /// <summary>Enough text to fill several screens without reading a multi-gigabyte log.</summary>
     private const int TextPreviewByteLimit = 256 * 1024;
 
+    // Segoe Fluent Icons, shown in the header strip so the kind of item reads at a glance.
+    private const string ImageGlyph = "";
+    private const string VideoGlyph = "";
+    private const string AudioGlyph = "";
+    private const string TextGlyph = "";
+    private const string FolderGlyph = "";
+    private const string UnknownGlyph = "";
+    private const string ErrorGlyph = "";
+
+    /// <summary>Header strip height, so image sizing can account for it.</summary>
+    private const int HeaderHeight = 55;
+
+    private const int ImageMargin = 12;
+
     public static PreviewContent Create(string path)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -32,8 +46,8 @@ public static class PreviewContentFactory
             return FileKinds.Classify(path) switch
             {
                 FileKind.Image => CreateImage(path, title),
-                FileKind.Video => CreateMedia(path, title, 960, 600),
-                FileKind.Audio => CreateMedia(path, title, 640, 400),
+                FileKind.Video => CreateMedia(path, title, VideoGlyph, 960, 600),
+                FileKind.Audio => CreateMedia(path, title, AudioGlyph, 640, 360),
                 FileKind.Text => CreateText(path, title),
                 FileKind.Folder => CreateFolder(path, title),
                 _ => CreateFallback(path, title),
@@ -48,8 +62,9 @@ public static class PreviewContentFactory
                 CreateMessage($"無法預覽此項目：{exception.Message}"),
                 title,
                 DescribePath(path),
-                640,
-                400);
+                ErrorGlyph,
+                560,
+                360);
         }
     }
 
@@ -61,10 +76,62 @@ public static class PreviewContentFactory
             Stretch = Stretch.Uniform,
             Margin = new Thickness(12),
         };
-        return new PreviewContent(image, title, DescribePath(path), 960, 680);
+
+        var (width, height) = MeasureImage(path);
+        return new PreviewContent(image, title, DescribePath(path), ImageGlyph, width, height);
     }
 
-    private static PreviewContent CreateMedia(string path, string title, int width, int height)
+    /// <summary>
+    /// Picks a window size matching the picture's own proportions, so a wide panorama does
+    /// not open in a tall window with empty bands above and below it.
+    /// </summary>
+    private static (int Width, int Height) MeasureImage(string path)
+    {
+        const int maximumWidth = 1180;
+        const int maximumHeight = 760;
+        var pixels = TryReadPixelSize(path);
+        if (pixels is not var (pixelWidth, pixelHeight) || pixelWidth <= 0 || pixelHeight <= 0)
+        {
+            return (960, 680);
+        }
+
+        var scale = Math.Min(
+            Math.Min(maximumWidth / (double)pixelWidth, maximumHeight / (double)pixelHeight),
+            1d);
+        return (
+            (int)Math.Round(pixelWidth * scale) + (ImageMargin * 2),
+            (int)Math.Round(pixelHeight * scale) + (ImageMargin * 2) + HeaderHeight);
+    }
+
+    /// <summary>
+    /// Reads the pixel size from the file header only.
+    /// </summary>
+    /// <remarks>
+    /// Passing <c>validateImageData: false</c> keeps this to a header read rather than a
+    /// full decode, which matters because it runs before the window is on screen. Formats
+    /// GDI+ does not know — WebP, HEIC, AVIF — simply fall back to the default size.
+    /// </remarks>
+    private static (int Width, int Height)? TryReadPixelSize(string path)
+    {
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var image = System.Drawing.Image.FromStream(
+                stream, useEmbeddedColorManagement: false, validateImageData: false);
+            return (image.Width, image.Height);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or ArgumentException
+            or OutOfMemoryException)
+        {
+            // GDI+ reports an unknown format as ArgumentException or OutOfMemoryException.
+            return null;
+        }
+    }
+
+    private static PreviewContent CreateMedia(
+        string path, string title, string glyph, int width, int height)
     {
         var player = new MediaPlayerElement
         {
@@ -76,7 +143,7 @@ public static class PreviewContentFactory
         // Muted by default: a preview is often opened in a quiet room, and one unexpected
         // burst of sound costs more trust than the extra key press to unmute.
         player.MediaPlayer.IsMuted = true;
-        return new PreviewContent(player, title, DescribePath(path), width, height);
+        return new PreviewContent(player, title, DescribePath(path), glyph, width, height);
     }
 
     private static PreviewContent CreateText(string path, string title)
@@ -105,7 +172,7 @@ public static class PreviewContentFactory
             subtitle += "　·　僅顯示開頭 256 KB";
         }
 
-        return new PreviewContent(scroller, title, subtitle, 900, 700);
+        return new PreviewContent(scroller, title, subtitle, TextGlyph, 900, 700);
     }
 
     private static PreviewContent CreateFolder(string path, string title)
@@ -128,7 +195,12 @@ public static class PreviewContentFactory
             Margin = new Thickness(8),
         };
         var shown = entries.Count < total ? $"　·　顯示前 {entries.Count} 項" : string.Empty;
-        return new PreviewContent(list, title, $"資料夾　·　{total} 個項目{shown}", 640, 620);
+
+        // A near-empty folder in a tall window looks broken, so the height follows the
+        // number of rows there actually are.
+        var height = Math.Clamp(110 + (entries.Count * 40), 260, 680);
+        return new PreviewContent(
+            list, title, $"資料夾　·　{total} 個項目{shown}", FolderGlyph, 560, height);
     }
 
     private static PreviewContent CreateFallback(string path, string title)
@@ -152,7 +224,7 @@ public static class PreviewContentFactory
             HorizontalAlignment = HorizontalAlignment.Center,
             FontSize = 14,
         });
-        return new PreviewContent(panel, title, DescribePath(path), 560, 400);
+        return new PreviewContent(panel, title, DescribePath(path), UnknownGlyph, 560, 360);
     }
 
     private static TextBlock CreateMessage(string message) => new()

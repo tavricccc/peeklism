@@ -3,9 +3,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Peeklism">
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
     <Border
         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
         BorderThickness="1"
@@ -16,15 +13,32 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
+            <!-- Deliberately unfilled: a solid strip would block the Mica underneath, which
+                 is the one thing tying Peeklism's look to the rest of the system. -->
             <Grid
-                Padding="16,10"
+                Padding="14,11,10,11"
                 ColumnSpacing="12"
-                Background="{ThemeResource LayerFillColorDefaultBrush}">
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="0,0,0,1">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center">
+
+                <Border
+                    Width="32"
+                    Height="32"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                    CornerRadius="7">
+                    <FontIcon
+                        x:Name="KindIcon"
+                        FontSize="15"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
                     <TextBlock
                         x:Name="TitleText"
                         FontFamily="{ThemeResource ContentControlThemeFontFamily}"
@@ -33,15 +47,30 @@
                         TextTrimming="CharacterEllipsis" />
                     <TextBlock
                         x:Name="SubtitleText"
-                        FontSize="12"
+                        FontSize="11"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         TextTrimming="CharacterEllipsis" />
                 </StackPanel>
+
+                <StackPanel
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="10">
+                    <Button
+                        x:Name="OpenButton"
+                        Padding="12,5"
+                        Click="OnOpenClick"
+                        AutomationProperties.Name="開啟">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <FontIcon FontSize="13" Glyph="&#xE8E5;" />
+                            <TextBlock FontSize="13" Text="開啟" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
 
-            <Border Grid.Row="1" Padding="1" CornerRadius="0,0,8,8">
-                <ContentPresenter x:Name="ContentHost" />
-            </Border>
+            <ContentPresenter x:Name="ContentHost" Grid.Row="1" />
         </Grid>
     </Border>
 </Window>
