@@ -81,7 +81,12 @@ public static class InstallFiles
             if (!Convert.ToHexString(SHA256.HashData(file)).Equals(hash, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException($"檔案校驗失敗：{name}");
         }
-        foreach (var required in new[] { "Peeklism.App.exe", "coreclr.dll", "Microsoft.UI.Xaml.dll" })
+        // Microsoft.WinUI.dll rather than Microsoft.UI.Xaml.dll: the managed projection is
+        // present in both layouts, while the native XAML binary only exists in the standalone
+        // one, where the whole Windows App SDK is copied into the installation. Naming the
+        // native binary here would refuse every shared-runtime release, including the upgrade
+        // that converts an existing standalone installation into one.
+        foreach (var required in new[] { "Peeklism.App.exe", "coreclr.dll", "Microsoft.WinUI.dll" })
             if (!manifest.Files.ContainsKey(required)) throw new InvalidDataException($"安裝包缺少 {required}");
         return manifest;
     }

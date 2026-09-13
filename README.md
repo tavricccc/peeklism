@@ -28,7 +28,7 @@ Peeklism 是獨立產品，與 [Flowlism](https://github.com/tavricccc/flowlism)
 pwsh -File scripts/Publish-Installer.ps1
 ```
 
-產出在 `artifacts/installer/current`：最外層只有 `Peeklism.Setup.exe`，其餘檔案在 `resources` 子資料夾，兩者必須一起保留。預設安裝到 `%LocalAppData%\Programs\Peeklism`。上一版安裝程式會保留在 `artifacts/installer/history`。
+產出是單一檔案 `artifacts/installer/Peeklism.Setup.exe`，複製走就能用。預設安裝到 `%LocalAppData%\Programs\Peeklism`。上一版安裝程式會移到 `artifacts/installer/history`。
 
 腳本需要 **PowerShell 7**（`pwsh`）；Windows PowerShell 5.1 缺少它用到的 API。
 
@@ -39,6 +39,25 @@ dotnet run --project tools/Peeklism.Probe
 ```
 
 讓它在背景跑，然後切換到檔案總管或桌面點選檔案。每次前景視窗或選取項目變化都會印出一行。
+
+## 共用的 Windows App 執行環境
+
+WinUI 不再複製進安裝資料夾，而是來自 Windows 集中保管的 MSIX framework package——整台機器一份，Downlism、Flowlism、Peeklism 指向同一份。三個各帶一份一樣的 145 MB，在磁碟上是三份，同時開著的時候在記憶體裡也是三份。
+
+安裝程式只有一個檔案，裡面有兩種版型：
+
+| 裝到機器上的是 | 需要什麼 |
+| --- | --- |
+| **共用版型** | 機器上登錄一份共用的 Windows App 執行環境（元件已在安裝程式裡，不需連網） |
+| **自帶版型** | 什麼都不需要，整套 SDK 都在安裝資料夾裡 |
+
+兩種版型都在同一個 `Peeklism.Setup.exe` 裡，裝哪一種由安裝程式自己決定。自帶版型就是共用版型加上那套 SDK 二進位檔，封裝時逐檔比對雜湊，相同的只存一份，所以同檔不等於兩倍大。
+
+登錄由 `Peeklism.Bootstrap` 在安裝介面啟動之前完成——安裝介面自己就是 WinUI，不可能是登錄它自己所需元件的那個東西。不需要系統管理員，也不需要開發人員模式：套件是微軟簽章的 Store 元件。已經登錄過就直接用共用版型，什麼都不問；沒有才詢問，而使用者拒絕、或機器不允許登錄共用元件時，改裝自帶版型繼續走完。
+
+舊的自帶版型安裝升級到共用版型時會自動換版型：安裝紀錄裡不再存在的檔案會被移除。這是必要的，`Microsoft.UI.Xaml.dll` 留在執行檔旁邊的載入順序高於共用套件。
+
+取捨的完整紀錄見 Downlism 的 `docs/tech-selection.md` §8.9。
 
 ## 建置
 
