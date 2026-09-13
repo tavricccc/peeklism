@@ -32,7 +32,7 @@ function Assert-SafeTree([string]$Path) {
 # together so they share one copy of the .NET runtime between them.
 function New-Layout([string]$Destination, [bool]$SelfContainedSdk) {
     $sdk = if ($SelfContainedSdk) { 'true' } else { 'false' }
-    foreach ($project in @('src/Peeklism.App/Peeklism.App.csproj', 'src/Peeklism.Setup/Peeklism.Setup.csproj')) {
+    foreach ($project in @('src/Peeklism.App/Peeklism.App.csproj', 'src/Peeklism.Setup/Peeklism.Setup.csproj', 'src/Peeklism.Uninstall/Peeklism.Uninstall.csproj')) {
         Invoke-Dotnet @('publish', $project, '-c', 'Release', '-p:Platform=x64', "-p:AppVersion=$Version", "-p:WindowsAppSDKSelfContained=$sdk", '-o', $Destination)
     }
     # The Windows App SDK metapackage drags its machine-learning stack along with everything
@@ -56,12 +56,18 @@ function New-Layout([string]$Destination, [bool]$SelfContainedSdk) {
     }
 
     $files = [ordered]@{}
+    $destPrefix = $Destination.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
     foreach ($file in Get-ChildItem -LiteralPath $Destination -File -Recurse | Sort-Object FullName) {
-        $files[[IO.Path]::GetRelativePath($Destination, $file.FullName)] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
+        $rel = if ($file.FullName.StartsWith($destPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $file.FullName.Substring($destPrefix.Length)
+        } else {
+            $file.FullName
+        }
+        $files[$rel] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
     }
     # Microsoft.UI.Xaml.dll only lives in the installation when the SDK is copied in, so the
     # shared layout is checked against the managed projection that both layouts carry.
-    $expected = @('Peeklism.App.exe', 'Peeklism.Setup.exe', 'coreclr.dll', 'Microsoft.WinUI.dll')
+    $expected = @('Peeklism.App.exe', 'Peeklism.Setup.exe', 'Uninstall.exe', 'coreclr.dll', 'Microsoft.WinUI.dll')
     $expected += if ($SelfContainedSdk) { 'Microsoft.UI.Xaml.dll' } else { 'Microsoft.WindowsAppRuntime.Bootstrap.dll' }
     foreach ($required in $expected) {
         if (!$files.Contains($required)) { throw "Missing $required" }
@@ -88,12 +94,23 @@ try {
     # files that are byte for byte what the first copy already carries.
     $payload = Join-Path $work 'payload'
     $sharedHashes = @{}
+    $sharedPrefix = $sharedTree.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
     foreach ($file in Get-ChildItem -LiteralPath $sharedTree -File -Recurse) {
-        $sharedHashes[[IO.Path]::GetRelativePath($sharedTree, $file.FullName)] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
+        $rel = if ($file.FullName.StartsWith($sharedPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $file.FullName.Substring($sharedPrefix.Length)
+        } else {
+            $file.FullName
+        }
+        $sharedHashes[$rel] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
     }
     $shared = 0
+    $standalonePrefix = $standaloneTree.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
     foreach ($file in Get-ChildItem -LiteralPath $standaloneTree -File -Recurse) {
-        $relative = [IO.Path]::GetRelativePath($standaloneTree, $file.FullName)
+        $relative = if ($file.FullName.StartsWith($standalonePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $file.FullName.Substring($standalonePrefix.Length)
+        } else {
+            $file.FullName
+        }
         $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
         $section = 'standalone'
         if ($sharedHashes[$relative] -eq $hash) { $shared++; $section = 'common' }
@@ -102,7 +119,11 @@ try {
         Copy-Item -LiteralPath $file.FullName -Destination $destination
     }
     foreach ($file in Get-ChildItem -LiteralPath $sharedTree -File -Recurse) {
-        $relative = [IO.Path]::GetRelativePath($sharedTree, $file.FullName)
+        $relative = if ($file.FullName.StartsWith($sharedPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $file.FullName.Substring($sharedPrefix.Length)
+        } else {
+            $file.FullName
+        }
         if (Test-Path -LiteralPath (Join-Path $payload (Join-Path 'common' $relative))) { continue }
         $destination = Join-Path $payload (Join-Path 'shared' $relative)
         [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null

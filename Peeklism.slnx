@@ -10,6 +10,9 @@
     <Project Path="src/Peeklism.Setup/Peeklism.Setup.csproj">
       <Platform Project="x64" />
     </Project>
+    <Project Path="src/Peeklism.Uninstall/Peeklism.Uninstall.csproj">
+      <Platform Project="x64" />
+    </Project>
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Peeklism.Tests/Peeklism.Tests.csproj" />

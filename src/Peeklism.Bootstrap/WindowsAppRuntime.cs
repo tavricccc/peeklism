@@ -33,79 +33,85 @@ namespace Peeklism.Bootstrap;
 internal static class WindowsAppRuntime
 {
     /// <summary>
-    /// The framework package Peeklism's WinUI resolves at run time. The family name is fixed by
-    /// Microsoft's publisher identity, so it can be written down rather than discovered.
+    /// The runtime packages Peeklism's WinUI resolves at run time.
     /// </summary>
-    private const string FrameworkFamilyName = "Microsoft.WindowsAppRuntime.2_8wekyb3d8bbwe";
-
-    /// <summary>
-    /// Matches the Microsoft.WindowsAppSDK version the app is built against, and must be moved
-    /// with it. A newer package satisfies the requirement; an older one does not, because the
-    /// app may call APIs it does not have.
-    /// </summary>
-    private static readonly Version Minimum = new(2, 4, 0, 0);
-
-    /// <summary>
-    /// Registered in this order. The framework carries the binaries the other three refer to,
-    /// and only x64 ships: the x86 packages exist to run x86 applications, and Peeklism is x64.
-    /// </summary>
-    private static readonly string[] PackageFiles =
+    private static readonly (string FileName, string FamilyName, Version MinVersion)[] Packages =
     [
-        "Microsoft.WindowsAppRuntime.2.msix",
-        "Microsoft.WindowsAppRuntime.Main.2.msix",
-        "Microsoft.WindowsAppRuntime.Singleton.2.msix",
-        "Microsoft.WindowsAppRuntime.DDLM.2.msix",
+        ("Microsoft.WindowsAppRuntime.2.msix", "Microsoft.WindowsAppRuntime.2_8wekyb3d8bbwe", new Version(2, 4, 0, 0)),
+        ("Microsoft.WindowsAppRuntime.Main.2.msix", "MicrosoftCorporationII.WinAppRuntime.Main.2_8wekyb3d8bbwe", new Version(2, 4, 0, 0)),
+        ("Microsoft.WindowsAppRuntime.Singleton.2.msix", "MicrosoftCorporationII.WinAppRuntime.Singleton_8wekyb3d8bbwe", new Version(8002, 4, 0, 0)),
+        ("Microsoft.WindowsAppRuntime.DDLM.2.msix", "Microsoft.WinAppRuntime.DDLM.2.4.0.0-x6_8wekyb3d8bbwe", new Version(2, 4, 0, 0)),
     ];
 
-    /// <summary>Whether a new enough framework package is already registered for this user.</summary>
-    public static bool IsPresent()
+    private static bool IsPackageInstalled(PackageManager manager, string familyName, Version minVersion)
     {
         try
         {
-            foreach (var package in new PackageManager().FindPackagesForUser(string.Empty, FrameworkFamilyName))
+            foreach (var package in manager.FindPackagesForUser(string.Empty, familyName))
             {
                 var version = package.Id.Version;
-                if (new Version(version.Major, version.Minor, version.Build, version.Revision) >= Minimum) return true;
+                if (new Version(version.Major, version.Minor, version.Build, version.Revision) >= minVersion)
+                    return true;
             }
         }
         catch (Exception exception) when (exception is UnauthorizedAccessException or COMException)
         {
-            // The deployment API is unavailable or refused. Reported as absent so the caller
-            // tries and produces a real error, rather than failing much later when the app
-            // cannot find its own UI framework.
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether all required Windows App Runtime packages are already registered for this user.</summary>
+    public static bool IsPresent()
+    {
+        try
+        {
+            var manager = new PackageManager();
+            foreach (var (_, familyName, minVersion) in Packages)
+            {
+                if (!IsPackageInstalled(manager, familyName, minVersion))
+                    return false;
+            }
+
+            return true;
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException or COMException)
+        {
         }
 
         return false;
     }
 
     /// <summary>
-    /// Registers every package that ships beside the installer, then confirms the result.
+    /// Registers missing packages that ship beside the installer, then confirms the result.
+    /// Existing packages are preserved and never reinstalled.
     /// </summary>
-    /// <remarks>
-    /// Individual failures are swallowed on purpose. A machine part-way through an earlier
-    /// attempt already has some of these, and adding a package that exists is reported as a
-    /// failure; what decides the outcome is whether the framework is usable afterwards, which is
-    /// checked once at the end.
-    /// </remarks>
     /// <param name="directory">Where the packages were unpacked to.</param>
     /// <param name="progress">The caller's dialog, which is already on screen by this point.</param>
     public static void Install(string directory, ProgressDialog progress)
     {
         if (!Directory.Exists(directory)) throw new IOException($"找不到執行環境套件資料夾：{directory}");
 
-        var available = PackageFiles.Where(name => File.Exists(Path.Combine(directory, name))).ToArray();
-        if (available.Length == 0) throw new IOException($"{directory} 裡沒有任何執行環境套件。");
-
         var manager = new PackageManager();
-        Exception? firstFailure = null;
 
-        // One unit of progress per package, each divided into its own hundred, so the bar
-        // reflects the whole job rather than restarting four times.
-        var total = available.Length * 100L;
+        // Check which packages are missing; only install the missing ones, skipping what already exists.
+        var missing = Packages
+            .Where(p => File.Exists(Path.Combine(directory, p.FileName)) && !IsPackageInstalled(manager, p.FamilyName, p.MinVersion))
+            .ToArray();
 
-        for (var index = 0; index < available.Length; index++)
+        if (missing.Length == 0)
         {
-            var path = Path.Combine(directory, available[index]);
+            if (IsPresent()) return;
+            throw new IOException($"{directory} 裡沒有足夠的執行環境套件可供安裝。");
+        }
+
+        Exception? firstFailure = null;
+        var total = missing.Length * 100L;
+
+        for (var index = 0; index < missing.Length; index++)
+        {
+            var (fileName, _, _) = missing[index];
+            var path = Path.Combine(directory, fileName);
             var completed = index * 100L;
 
             try

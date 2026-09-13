@@ -15,7 +15,7 @@ public static class InstallationUpdate
         // one, where the whole Windows App SDK is copied into the installation. Naming the
         // native binary here would refuse every shared-runtime release, including the upgrade
         // that converts an existing standalone installation into one.
-        foreach (var required in new[] { "Peeklism.App.exe", "Peeklism.Setup.exe", "coreclr.dll", "Microsoft.WinUI.dll" })
+        foreach (var required in new[] { "Peeklism.App.exe", "Peeklism.Setup.exe", "Uninstall.exe", "coreclr.dll", "Microsoft.WinUI.dll" })
             if (!manifest.Files.ContainsKey(required)) throw new InvalidDataException($"安裝資料夾缺少 {required}");
         return manifest;
     }
@@ -37,8 +37,17 @@ public static class InstallationUpdate
             throw new IOException("目標資料夾不是受管理的 Peeklism 安裝。");
         var changed = next.Files.Where(pair => !Matches(InstallFiles.Resolve(target, pair.Key), pair.Value)).Select(pair => pair.Key).ToList();
         foreach (var name in next.Files.Keys)
+        {
             if (File.Exists(InstallFiles.Resolve(target, name)) && previous is not null && !previous.Files.ContainsKey(name))
+            {
+                if (name.StartsWith("Uninstall.", StringComparison.OrdinalIgnoreCase) ||
+                    name.StartsWith(next.Product + ".", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
                 throw new IOException($"更新會覆蓋自行加入的檔案：{name}");
+            }
+        }
         var removed = previous?.Files.Keys.Where(name => !next.Files.ContainsKey(name)).ToArray() ?? [];
         var parent = Path.GetDirectoryName(target)!;
         var work = Path.Combine(parent, ".peeklism-update-" + Guid.NewGuid().ToString("N"));

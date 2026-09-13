@@ -85,8 +85,8 @@ internal static class Program
 
         var answer = MessageBox(
             0,
-            "Peeklism 需要 Microsoft 的 Windows App 執行環境，這台電腦上還沒有。\n\n"
-                + "要登錄共用的那一份嗎？元件已經在這個安裝程式裡，不需要連網，"
+            "Peeklism 需要 Microsoft 的 Windows App 執行環境，這台電腦尚未完整安裝。\n\n"
+                + "要登錄缺少的共用元件嗎？元件已經在這個安裝程式裡，不需要連網，"
                 + "登錄後由 Windows 集中保管一份，之後 Flowlism、Downlism 也共用它，"
                 + "省下約 145 MB 的磁碟空間。\n\n"
                 + "選「否」也可以照常安裝：Peeklism 會自己帶一份執行環境，不登錄任何共用元件。",
