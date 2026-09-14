@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peeklism — 按空白鍵預覽檔案</title>
+<meta name="description" content="Peeklism 是繁體中文的 Windows 11 即時預覽工具。在檔案總管或桌面選好檔案，按一下空白鍵，預覽就在原地出現；方向鍵繼續換檔案，Explorer 從頭到尾不會失去鍵盤。原生 WinUI 3，常駐系統匣。0.4.1 早期版本。">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191919" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Peeklism">
+<meta property="og:title" content="Peeklism — 按空白鍵預覽檔案">
+<meta property="og:description" content="選好檔案，按一下空白鍵，預覽就在原地出現；再按一次收回。圖片、影片、音訊、純文字、Markdown、PDF 與資料夾都可以預覽，預覽視窗不奪走檔案總管的鍵盤。">
+<meta property="og:image" content="assets/og-image.png">
+<meta property="og:url" content="https://tavricccc.github.io/peeklism/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到主要內容</a>
+
+<svg class="icon-defs" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.75" y="4.75" width="16.5" height="14.5" rx="2"/><circle cx="9" cy="9.75" r="1.6"/><path d="M4.25 16.5 8.9 12.4a1.5 1.5 0 0 1 2 0l4.2 3.8M14 14.6l1.7-1.5a1.5 1.5 0 0 1 2 0l2.1 1.9"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="3.25" y="5.75" width="12.5" height="12.5" rx="2"/><path d="M15.75 10.75 20.25 8v8l-4.5-2.75z"/></symbol>
+  <symbol id="i-audio" viewBox="0 0 24 24"><path d="M9.25 15.25V5.5l9-1.75v9.5"/><circle cx="6.75" cy="16.25" r="2.5"/><circle cx="15.75" cy="14.25" r="2.5"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M13.5 3.75H7.25A1.5 1.5 0 0 0 5.75 5.25v13.5a1.5 1.5 0 0 0 1.5 1.5h9.5a1.5 1.5 0 0 0 1.5-1.5V8.25z"/><path d="M13.5 3.75v3a1.5 1.5 0 0 0 1.5 1.5h3.25"/><path d="M8.5 12.75h7M8.5 16h4.5"/></symbol>
+  <symbol id="i-markdown" viewBox="0 0 24 24"><rect x="2.75" y="5.75" width="18.5" height="12.5" rx="2"/><path d="M6 15.25V8.75l2.6 3.2 2.6-3.2v6.5"/><path d="M15 8.75v6.5M15 15.25 12.9 13M15 15.25 17.1 13"/></symbol>
+  <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M13.5 3.75H7.25A1.5 1.5 0 0 0 5.75 5.25v13.5a1.5 1.5 0 0 0 1.5 1.5h9.5a1.5 1.5 0 0 0 1.5-1.5V8.25z"/><path d="M13.5 3.75v3a1.5 1.5 0 0 0 1.5 1.5h3.25"/><path d="M8.75 16.5c2.4-1.2 3.8-3.4 3.8-4.9 0-.8-.4-1.3-1-1.3s-1 .6-.9 1.6c.2 2 2.2 4 4.6 4.4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.75 6.75A1.5 1.5 0 0 1 5.25 5.25h3.4l1.9 2.25h8.2a1.5 1.5 0 0 1 1.5 1.5v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5z"/></symbol>
+  <symbol id="i-unknown" viewBox="0 0 24 24"><path d="M13.5 3.75H7.25A1.5 1.5 0 0 0 5.75 5.25v13.5a1.5 1.5 0 0 0 1.5 1.5h9.5a1.5 1.5 0 0 0 1.5-1.5V8.25z"/><path d="M13.5 3.75v3a1.5 1.5 0 0 0 1.5 1.5h3.25"/><path d="M10.4 12.3a1.7 1.7 0 1 1 2.3 1.6c-.5.2-.7.6-.7 1.1"/><path d="M12 17.2h.01"/></symbol>
+  <symbol id="i-explorer" viewBox="0 0 24 24"><rect x="3.25" y="4.75" width="17.5" height="14.5" rx="2"/><path d="M3.25 9.25h17.5M8.25 9.25v10"/></symbol>
+  <symbol id="i-desktop" viewBox="0 0 24 24"><rect x="3.25" y="4.75" width="17.5" height="11.5" rx="2"/><path d="M8.5 19.75h7M12 16.25v3.5"/></symbol>
+  <symbol id="i-dialog" viewBox="0 0 24 24"><rect x="3.25" y="5.25" width="17.5" height="13.5" rx="2"/><path d="M3.25 9h17.5"/><path d="M13.25 15.25h4.25"/><path d="M6.5 7.1h.01M9 7.1h.01"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.75 12S6.5 6 12 6s9.25 6 9.25 6-3.75 6-9.25 6-9.25-6-9.25-6Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="7.25" y="5.25" width="3.5" height="13.5" rx="1.2"/><rect x="13.25" y="5.25" width="3.5" height="13.5" rx="1.2"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3.75v7.5"/><path d="M7.6 6.6a7 7 0 1 0 8.8 0"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.25"/><path d="M12 11.25v5"/><path d="M12 7.9h.01"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"/></symbol>
+</svg>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <img src="assets/peeklism-logo.webp" width="24" height="24" alt="">
+      <span>Peeklism</span>
+    </a>
+    <nav class="nav-links" aria-label="章節">
+      <a href="#peek">空白鍵</a>
+      <a href="#status">現況</a>
+      <a href="#surfaces">三種介面</a>
+      <a href="#kinds">預覽類型</a>
+      <a href="#install">安裝</a>
+    </nav>
+    <a class="btn btn-primary nav-cta" href="#install">安裝與需求</a>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1>選好檔案<br>按一下空白鍵</h1>
+      <p class="lede">Peeklism 是繁體中文的 Windows 11 即時預覽工具。在檔案總管或桌面選取一個項目，按空白鍵，預覽就在原地出現；再按一次收回。</p>
+      <p class="lede">預覽視窗不進入啟動鏈，所以檔案總管從頭到尾沒有失去鍵盤：方向鍵繼續換檔案，預覽跟著換內容。</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#peek">在這一頁按按看</a>
+        <a class="btn btn-quiet" href="#status">先看現況</a>
+      </div>
+      <p class="chev-row"><a class="chevron" href="https://github.com/tavricccc/peeklism">在 GitHub 上讀原始碼</a></p>
+      <p class="meta">0.4.1 · Windows 11 build 26100 以上 · x64 · WinUI 3 · 早期版本</p>
+    </div>
+    <div class="hero-shot">
+      <img src="assets/preview-image.webp" alt="Peeklism 預覽視窗的實際畫面：標題列顯示檔名「Peeklism 品牌概念圖.png」與「PNG 檔案 · 655.8 KB · 2026/09/12 23:07」，右上角是「開啟」按鈕，下方是置中顯示的品牌圖，四周留白。" width="1172" height="867" fetchpriority="high" decoding="async">
+    </div>
+  </div>
+</section>
+
+<section class="band band-a" id="peek">
+  <div class="wrap">
+    <div class="motif-head">
+      <h2>一個鍵，<br>而且是那個最大的鍵</h2>
+      <p>要看一眼檔案裡面是什麼，本來得雙擊、等程式載入、看完、再關掉。空白鍵把這四步縮成一步，而且手已經在鍵盤上了（選取檔案用的就是方向鍵）。</p>
+    </div>
+
+    <figure class="motif" id="motif">
+      <div class="peek" id="peek-sim">
+        <div class="peek-strip" role="group" aria-label="檔案總管模擬">
+          <div class="peek-bar" aria-hidden="true">
+            <span class="peek-dot"></span><span class="peek-dot"></span><span class="peek-dot"></span>
+            <span class="peek-crumb">示範資料夾</span>
+          </div>
+          <ul id="peekList" class="peek-files" role="listbox" tabindex="0"
+              aria-label="模擬的檔案清單：方向鍵換檔案，空白鍵開關預覽"></ul>
+        </div>
+
+        <div class="peek-stage">
+          <div id="peekPanel" class="peek-panel" hidden>
+            <div class="peek-panel-head">
+              <span class="peek-panel-ico"><svg aria-hidden="true"><use href="#i-image" id="peekGlyph"/></svg></span>
+              <span class="peek-panel-main">
+                <span class="peek-panel-title" id="peekTitle"></span>
+                <span class="peek-panel-sub" id="peekSub"></span>
+              </span>
+              <span class="peek-panel-open" aria-hidden="true">開啟</span>
+            </div>
+            <div class="peek-panel-body" id="peekBody"></div>
+          </div>
+          <p class="peek-empty" id="peekEmpty">預覽還沒打開。按一下空白鍵。</p>
+        </div>
+      </div>
+
+      <div class="peek-controls">
+        <button class="keycap keycap-space" type="button" id="peekSpace" data-key="space">
+          <span aria-hidden="true">Space</span>
+          <span class="visually-hidden">空白鍵：開啟或收回模擬預覽</span>
+        </button>
+        <p class="peek-hints">
+          <span><kbd>↑</kbd><kbd>↓</kbd> 換檔案</span>
+          <span><kbd>Space</kbd> 開關預覽</span>
+          <span><kbd>Esc</kbd> 收回</span>
+        </p>
+      </div>
+
+      <p class="sim-status" id="peekStatus" role="status" aria-live="polite"></p>
+
+      <figcaption>這是這一頁裡的前端模擬，不是真的 Peeklism，也不會讀取你的電腦：檔案清單與預覽內容都是寫死的示範資料。按鍵規則照著實際程式寫：空白鍵開關、方向鍵換檔案時預覽留在原地只換內容、Esc 收回。用鍵盤操作請先讓上面的清單取得焦點。</figcaption>
+      </figure>
+
+    <div class="motif-notes">
+      <div>
+        <h3>預覽視窗不搶焦點</h3>
+        <p>視窗帶著 <code>WS_EX_NOACTIVATE</code>，永遠不進入啟動鏈。檔案總管因此沒有失去鍵盤，方向鍵、重新命名、複製與右鍵選單全部照常運作，預覽只是反映你選到哪一個。換成會搶焦點的做法，就得把方向鍵轉送回去，而轉送會掉鍵。</p>
+      </div>
+      <div>
+        <h3>正在打字的時候，空白鍵還是空白鍵</h3>
+        <p>重新命名檔案、在搜尋框或位址列輸入，視窗類別仍然是檔案總管。這種時候吞掉空白鍵會毀掉使用者正在打的字，所以焦點在文字輸入控制項上時，按鍵直接放行。</p>
+      </div>
+      <div>
+        <h3>換檔案時視窗不動</h3>
+        <p>預覽開著的時候，每 150 毫秒重讀一次選取項目：方向鍵、滑鼠點選，或任何其他來源造成的改變都涵蓋得到。換到新檔案只替換內容，視窗留在原位：在資料夾裡一路按方向鍵時，會跳動與改變大小的預覽是沒辦法用的。</p>
+      </div>
+      <div>
+        <h3>鍵盤 hook 只在需要的時候裝上</h3>
+        <p>只有檔案總管、桌面或開啟檔案對話框在前景時才掛上系統層級的鍵盤 hook，離開就卸下。讓它一直裝著，等於把 Peeklism 放進這台機器上每一次按鍵的必經之路，換不到任何好處。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-b" id="status">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>現況：0.4.1 是早期版本</h2>
+      <p>最底層、風險最高的那一段已經完成，空白鍵、預覽視窗、系統匣與安裝程式也可以實際使用。還沒有的是開啟檔案對話框的預覽、設定介面，以及公開下載。下面這張表照著 repo 裡的狀態寫，包含沒完成的那幾項。</p>
+    </div>
+    <div class="table-scroll">
+      <table class="status-table">
+        <caption class="visually-hidden">Peeklism 0.4.1 各項功能的完成狀態</caption>
+        <thead><tr><th scope="col">項目</th><th scope="col">狀態</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">判斷前景視窗屬於哪種 shell 介面</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">讀出檔案總管與桌面目前選取的檔案</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">低階鍵盤 hook：空白鍵開關、<kbd>Esc</kbd> 收回、<kbd>Enter</kbd> 交還給 Explorer</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">不奪取焦點的預覽視窗（<code>WS_EX_NOACTIVATE</code>、置頂、圓角與系統背景）</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">方向鍵換選取時只換內容，視窗不重新置中或改變大小</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">圖片、影片、音訊、純文字、Markdown、PDF 與資料夾預覽</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">系統匣：暫停預覽、登入時啟動、關於、結束</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">單一實例，與安裝、更新、解除安裝</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">讀出開啟檔案對話框的選取項目（需要 <code>Peeklism.Native</code>）</th><td><span class="pill pill-todo">待原生輔助 DLL</span></td></tr>
+          <tr><th scope="row">設定介面（目前所有選項都在系統匣選單裡）</th><td><span class="pill pill-todo">未開始</span></td></tr>
+          <tr><th scope="row">公開下載網址、程式碼簽章與專案授權</th><td><span class="pill pill-todo">未設定</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="notes-pair">
+      <div>
+        <h3>這裡沒有「下載安裝檔」的按鈕</h3>
+        <p>公開下載網址與程式碼簽章都還沒有設定，所以現階段要自己從原始碼建置，執行 <code>scripts/Publish-Installer.ps1</code> 產出 <code>Peeklism.Setup.exe</code>。放一個連到不存在檔案的按鈕，只是把這件事藏起來。</p>
+      </div>
+      <div>
+        <h3>開啟檔案對話框只做到一半</h3>
+        <p>對話框的偵測已經完成，讀取它選了什麼還沒有：那個視窗屬於別的行程，不會註冊到 shell 視窗集合，必須把原生 DLL 載進對方的執行緒才讀得到。在那之前，對話框上按空白鍵不會有預覽。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-c" id="surfaces">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>三種介面，同一個按鍵</h2>
+      <p>按下空白鍵的那一瞬間，要先知道前景視窗是什麼。這個判斷只看視窗類別名稱，全部是便宜的 user32 查詢，因為它跑在低階鍵盤 hook 的回呼裡，而 Windows 會計時，太慢就直接把 hook 拔掉。讀取選取項目是 COM 呼叫，等離開回呼之後才做。</p>
+    </div>
+
+    <div class="diagram-wrap">
+      <svg class="diagram" viewBox="0 0 900 404" role="img" aria-labelledby="diagram-title diagram-desc">
+        <title id="diagram-title">三種 shell 介面與各自的選取讀取狀態</title>
+        <desc id="diagram-desc">檔案總管、桌面與開啟檔案對話框三種介面都能被偵測出來。檔案總管與桌面可以直接列舉 shell 視窗集合讀出選取項目，開啟檔案對話框屬於別的行程、不會註冊，還在等原生輔助 DLL。前兩條路徑往下匯流到預覽視窗。</desc>
+
+        <g class="dg-engine">
+          <rect x="16" y="20" width="256" height="116" rx="8"/>
+          <g class="dg-icon" transform="translate(40, 44)"><use href="#i-explorer" width="24" height="24"/></g>
+          <text class="dg-title" x="76" y="54">檔案總管</text>
+          <text class="dg-sub" x="40" y="88">視窗類別 CabinetWClass</text>
+          <text class="dg-sub" x="40" y="108">IShellWindows 直接列舉</text>
+          <text class="dg-ok" x="40" y="128">讀取選取項目：完成</text>
+        </g>
+
+        <g class="dg-engine">
+          <rect x="322" y="20" width="256" height="116" rx="8"/>
+          <g class="dg-icon" transform="translate(346, 44)"><use href="#i-desktop" width="24" height="24"/></g>
+          <text class="dg-title" x="382" y="54">桌面</text>
+          <text class="dg-sub" x="346" y="88">Progman 或 WorkerW</text>
+          <text class="dg-sub" x="346" y="108">再確認底下有 shell 檢視</text>
+          <text class="dg-ok" x="346" y="128">讀取選取項目：完成</text>
+        </g>
+
+        <g class="dg-engine dg-pending">
+          <rect x="628" y="20" width="256" height="116" rx="8"/>
+          <g class="dg-icon" transform="translate(652, 44)"><use href="#i-dialog" width="24" height="24"/></g>
+          <text class="dg-title" x="688" y="54">開啟檔案對話框</text>
+          <text class="dg-sub" x="652" y="88">#32770，排除訊息方塊</text>
+          <text class="dg-sub" x="652" y="108">別的行程，不會註冊</text>
+          <text class="dg-wait" x="652" y="128">讀取選取項目：未完成</text>
+        </g>
+
+        <g class="dg-flow">
+          <path d="M144 136 L144 180 Q144 196 160 196 L434 196 Q450 196 450 212 L450 240"/>
+          <path d="M450 136 L450 240"/>
+        </g>
+        <g class="dg-cut">
+          <path d="M756 136 L756 176"/>
+          <path d="M742 184 L770 198M770 184 L742 198"/>
+        </g>
+        <g class="dg-arrow"><path d="M444 234 L450 244 L456 234"/></g>
+
+        <g class="dg-shared">
+          <rect x="16" y="252" width="868" height="132" rx="8"/>
+          <text class="dg-label" x="40" y="282">預覽視窗</text>
+          <g class="dg-row">
+            <rect x="40" y="298" width="820" height="36" rx="6"/>
+            <g class="dg-icon" transform="translate(52, 304)"><use href="#i-eye" width="24" height="24"/></g>
+            <text class="dg-file" x="88" y="314">檔名</text>
+            <text class="dg-num" x="88" y="329">類型 · 大小 · 修改時間</text>
+            <text class="dg-num dg-kind" x="844" y="321">開啟</text>
+          </g>
+          <text class="dg-sub" x="40" y="364">置頂、不進入啟動鏈 · 依內容決定大小 · 每 150 毫秒重讀選取項目</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="prose-cols">
+      <div>
+        <h3>檔案總管與桌面不需要注入程式碼</h3>
+        <p>Explorer 會把自己的視窗註冊到行程外也看得到的 shell 視窗集合，<code>IShellWindows</code> 直接就能列舉，再從對應的那一個讀出目前選取的項目。「本機」這類虛擬項目回報的是剖析名稱而不是真實路徑，會被排除掉。</p>
+      </div>
+      <div>
+        <h3>對話框則必須進到對方的行程裡</h3>
+        <p>開啟檔案對話框屬於別的行程，而且不會註冊到那個集合，要讀它選了什麼，只能把原生 DLL 載入對方的執行緒。這部分之後由 <code>Peeklism.Native</code> 處理；在那之前，對話框會被正確認出來，但讀不到選取項目。</p>
+        <p>順帶一提，訊息方塊也是 <code>#32770</code>。只有底下真的掛著 shell 檢視的對話框才算數；在訊息方塊上吞掉空白鍵會是個 bug。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-a" id="kinds">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>七種內容，<br>加上一個後備</h2>
+      <p>預覽必須在按下空白鍵之後一兩個影格內出現，所以每一種都是同步而且便宜的：除了開檔以外不等任何 I/O，而且不能丟例外。讀不到的檔案也要有一個預覽，說清楚 Peeklism 知道些什麼。</p>
+    </div>
+
+    <div class="table-scroll">
+      <table class="status-table kinds-table">
+        <caption class="visually-hidden">各種檔案類型的預覽方式</caption>
+        <thead><tr><th scope="col">類型</th><th scope="col">怎麼呈現</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><span class="kind-ico"><svg aria-hidden="true"><use href="#i-image"/></svg></span>圖片</th><td>視窗大小照圖片自己的比例算，寬幅全景不會開在上下留白的高視窗裡。只讀檔頭取得尺寸，不做完整解碼。PNG、JPEG、GIF、BMP、WebP、HEIC、TIFF、AVIF、DNG 等等。</td></tr>
+          <tr><th scope="row"><span class="kind-ico"><svg aria-hidden="true"><use href="#i-video"/></svg></span>影片</th><td>MP4、MOV、MKV、AVI、WMV、WebM，自動播放並附播放控制列，<strong>預設靜音</strong>，因為預覽常常是在安靜的地方打開的。</td></tr>
+          <tr><th scope="row"><span class="kind-ico"><svg aria-hidden="true"><use href="#i-audio"/></svg></span>音訊</th><td>MP3、M4A、WAV、FLAC、AAC、OGG、Opus，同樣自動播放、預設靜音。</td></tr>
+          <tr><th scope="row"><span class="kind-ico"><svg aria-hidden="true"><use href="#i-text"/></svg></span>純文字與程式碼</th><td>等寬字、不換行、可選取，橫向與縱向都能捲動。只讀開頭 256 KB，超過的話在副標註明；預覽不必為了一份幾 GB 的紀錄檔整個讀進來。</td></tr>
+          <tr><th scope="row"><span class="kind-ico"><svg aria-hidden="true"><use href="#i-markdown"/></svg></span>Markdown</th><td>標題、段落、清單、引言、圍籬式程式碼、分隔線、表格與行內強調都會排版。渲染器是手寫的，因為預覽等不起載入一套套件，而且解析不了的內容也必須以純文字照樣看得見。</td></tr>
+          <tr><th scope="row"><span class="kind-ico"><svg aria-hidden="true"><use href="#i-pdf"/></svg></span>PDF</th><td>視窗先開，頁面再一頁一頁補進來。等第一頁算完才開窗，就失去了按空白鍵的意義。最多算前 25 頁，總頁數會寫在最後一行。</td></tr>
+          <tr><th scope="row"><span class="kind-ico"><svg aria-hidden="true"><use href="#i-folder"/></svg></span>資料夾</th><td>列出裡面的項目，最多 300 筆，並顯示總數。視窗高度跟著列數收斂：幾乎空的資料夾開在一個高視窗裡看起來像壞掉了。</td></tr>
+          <tr><th scope="row"><span class="kind-ico"><svg aria-hidden="true"><use href="#i-unknown"/></svg></span>其他</th><td>認不得的副檔名顯示「<span class="nowrap">XXX 檔案沒有可用的預覽</span>」，仍然有檔名、大小與修改時間。讀不到的檔案顯示的是失敗的原因，不是一個空白視窗。</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="shot-pair">
+      <figure>
+        <img src="assets/preview-markdown.webp" alt="Peeklism 的 Markdown 預覽：標題列顯示「空白鍵預覽說明.md」與「MD 檔案 · 937 B」，下方排版出一級標題、數個二級標題、段落與一個項目清單。" width="1359" height="723" loading="lazy" decoding="async">
+        <figcaption>Markdown 走的是手寫的渲染器，欄寬刻意收窄，讓內文停在舒服的字數。</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/preview-text.webp" alt="Peeklism 的純文字預覽：標題列顯示「預覽設定.json」與「JSON 檔案 · 602 B」，下方以等寬字顯示格式化過的 JSON 內容，可以選取。" width="859" height="580" loading="lazy" decoding="async">
+        <figcaption>純文字與程式碼用等寬字、不換行，橫向捲動保留原本的縮排。</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band band-b" id="tray">
+  <div class="wrap split split-rev">
+    <div class="split-copy">
+      <h2>沒有主視窗，<br>只有系統匣裡那一個圖示</h2>
+      <p>Peeklism 沒有自己的視窗可以回去，所以系統匣圖示是唯一能暫停或結束它的地方。右鍵選單有四項：暫停預覽、登入 Windows 時啟動、關於，以及結束。</p>
+      <p><strong>暫停時鍵盤 hook 會被卸下</strong>，而不只是忽略按鍵。暫停中的 Peeklism 是真的離開了按鍵的路徑。</p>
+      <p>開機自啟用的是目前使用者的 Run 登錄機碼，不需要系統管理員權限。Peeklism 只有在執行中才有用——鍵盤 hook 沒裝上之前，空白鍵什麼也不會發生，而一個要先自己去啟動的預覽工具，沒有人會想到要用。</p>
+      <p>同一個 Windows 登入工作階段只會有一份 Peeklism：兩份就是兩個鍵盤 hook 搶同一個空白鍵。</p>
+    </div>
+    <div class="tray-card" aria-hidden="true">
+      <ul class="tray-menu">
+        <li><span class="tray-ico"><svg><use href="#i-pause"/></svg></span>暫停預覽</li>
+        <li><span class="tray-ico"><svg><use href="#i-power"/></svg></span>登入 Windows 時啟動<span class="tray-check">✓</span></li>
+        <li class="tray-sep"></li>
+        <li><span class="tray-ico"><svg><use href="#i-info"/></svg></span>關於 Peeklism</li>
+        <li><span class="tray-ico"><svg><use href="#i-close"/></svg></span>結束</li>
+      </ul>
+      <p class="tray-caption">系統匣右鍵選單的項目（此處為繪製的示意圖）。</p>
+    </div>
+  </div>
+</section>
+
+<section class="band band-c" id="install">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>一個安裝程式</h2>
+      <p><code>Peeklism.Setup.exe</code>，一個檔案，旁邊沒有需要一起保留的東西。裡面同時帶著兩種版型與共用執行環境的套件，安裝時自己決定裝哪一種。</p>
+    </div>
+
+    <div class="install-grid">
+      <div class="table-scroll">
+        <table class="status-table variants">
+          <caption class="visually-hidden">兩種安裝版型與各自的需求</caption>
+          <thead><tr><th scope="col">裝到機器上的是</th><th scope="col">需要什麼</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">共用版型</th><td>機器上登錄一份共用的 Windows App 執行環境，元件已經在安裝程式裡，不需要連網</td></tr>
+            <tr><th scope="row">自帶版型</th><td>什麼都不需要，整套 SDK 都在安裝資料夾裡</td></tr>
+          </tbody>
+        </table>
+        <p class="table-note">共用版型的 WinUI 來自 Windows 集中保管的 MSIX framework package，整台機器只有一份，Downlism 與 Flowlism 指向同一份。預設安裝到 <code>%LocalAppData%\Programs\Peeklism</code>，並自動建立開始功能表捷徑。</p>
+      </div>
+
+      <div class="install-notes">
+        <h3>不需要系統管理員，也不需要開發人員模式</h3>
+        <p>登錄由 <code>Peeklism.Bootstrap</code> 在安裝介面啟動之前完成——安裝介面自己就是 WinUI，不可能是登錄它自己所需元件的那個東西。套件是微軟簽章的 Store 元件。</p>
+        <h3>拒絕或失敗都不是死路</h3>
+        <p>已經登錄過就直接用共用版型，什麼都不問；沒有才詢問，而使用者回答「否」、或機器根本不允許登錄共用元件時，改裝自帶版型繼續走完。</p>
+        <h3>舊版升級會自動換版型</h3>
+        <p>舊的自帶版型升級到共用版型時，安裝紀錄裡不再存在的檔案會被移除。這是必要的：<code>Microsoft.UI.Xaml.dll</code> 留在執行檔旁邊的載入順序，高於共用套件。</p>
+      </div>
+    </div>
+
+    <div class="cta-strip">
+      <div>
+        <p class="cta-title">Windows 11 build 26100 以上、x64</p>
+        <p class="cta-sub">.NET 10 與 Windows App SDK 由安裝程式處理。自己建置需要 .NET 10 SDK，執行安裝程式腳本需要 PowerShell 7（<code>pwsh</code>）；Windows PowerShell 5.1 缺少它用到的 API。想先看看偵測那一層在做什麼，可以執行 <code>dotnet run --project tools/Peeklism.Probe</code>，切到檔案總管點選檔案，每次變化都會印出一行。</p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://github.com/tavricccc/peeklism">在 GitHub 上取得原始碼</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-family" id="family">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>同一套視覺語言，三個各自獨立的程式</h2>
+      <p>三者分開安裝、分開更新，不共用行程，也沒有互相依賴；共用的是 WinUI 3、Mica 與 Fluent，以及機器上同一份 Windows App SDK。</p>
+    </div>
+    <ul class="family">
+      <li class="fam-card">
+        <h3><a href="https://tavricccc.github.io/downlism/">Downlism</a></h3>
+        <p>多執行緒下載與影片嗅探。</p>
+        <span class="chevron" aria-hidden="true">開啟網站</span>
+      </li>
+      <li class="fam-card">
+        <h3><a href="https://tavricccc.github.io/flowlism/">Flowlism</a></h3>
+        <p>Alt+Space 搜尋啟動器。</p>
+        <span class="chevron" aria-hidden="true">開啟網站</span>
+      </li>
+      <li class="fam-card fam-current" aria-current="page">
+        <span class="fam-badge">你正在看的</span>
+        <h3>Peeklism</h3>
+        <p>空白鍵預覽。</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <p class="foot-brand"><img src="assets/peeklism-logo.webp" width="20" height="20" alt=""> Peeklism 0.4.1</p>
+    <nav class="foot-links" aria-label="頁尾">
+      <a href="https://github.com/tavricccc/peeklism">GitHub</a>
+      <a href="https://tavricccc.github.io/downlism/">Downlism</a>
+      <a href="https://tavricccc.github.io/flowlism/">Flowlism</a>
+    </nav>
+    <p class="foot-note">早期版本，尚未取得程式碼簽章憑證，也尚未指定開源授權。</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>
