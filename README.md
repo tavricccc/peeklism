@@ -6,7 +6,7 @@ Peeklism 是獨立產品，與 [Flowlism](https://github.com/tavricccc/flowlism)
 
 ## 現況
 
-0.6.0 加入完整唯讀查看器。在檔案總管按空白鍵仍是輕量預覽；使用「開啟檔案 → Peeklism」、點預覽中的「完整查看」，或從系統匣選「開啟完整查看器」，會開啟獨立視窗。開啟檔案對話框的預覽與設定介面仍未完成。安裝檔可從 [GitHub Releases](https://github.com/tavricccc/peeklism/releases/latest) 下載。
+0.6.0 加入完整唯讀查看器。在檔案總管按空白鍵仍是輕量預覽；使用「開啟檔案 → Peeklism」、點預覽中的「完整查看」，或從系統匣選「開啟完整查看器」，會開啟獨立視窗。開啟檔案對話框的預覽與設定介面仍未完成。安裝檔可從 [GitHub Releases](https://github.com/tavricccc/peeklism/releases/latest) 下載；儲存庫目前為私有，需登入具存取權限的 GitHub 帳號。
 
 | 介面 | 偵測 | 讀取選取項目 |
 | --- | --- | --- |
@@ -27,7 +27,7 @@ Peeklism 是獨立產品，與 [Flowlism](https://github.com/tavricccc/flowlism)
 | 單一實例與安裝／更新／解除安裝 | 完成 |
 | 開啟檔案對話框的預覽（`Peeklism.Native`） | 未開始 |
 | 設定介面（目前所有選項都在系統匣選單裡） | 未開始 |
-| 公開下載（GitHub Releases） | 已提供 |
+| GitHub Releases 安裝檔（需儲存庫存取權限） | 已提供 |
 | 程式碼簽章與專案授權 | 未設定 |
 
 檔案總管與桌面不需要注入程式碼：Explorer 會把自己的視窗註冊到行程外可見的 shell 視窗集合，`IShellWindows` 直接就能列舉。開啟檔案對話框屬於別的行程且不會註冊，必須把原生 DLL 載入對方執行緒才能讀取，這部分之後由 `Peeklism.Native` 處理。
