@@ -4,6 +4,7 @@ using Peeklism.App.Services;
 using Peeklism.Core.Diagnostics;
 using Peeklism.Core.Lifecycle;
 using Peeklism.Core.Shell;
+using Peeklism.Core.Viewing;
 
 namespace Peeklism.App;
 
@@ -13,12 +14,17 @@ public partial class App : Application
     private AppShutdownSignal? _shutdownSignal;
     private StaExecutor? _shellExecutor;
     private PreviewWindow? _window;
+    private ViewerWindow? _viewer;
     private PreviewController? _controller;
     private TrayIcon? _tray;
     private readonly LoginStartupService _loginStartup = new();
     private bool _isExiting;
 
-    public App() => InitializeComponent();
+    public App()
+    {
+        InitializeComponent();
+        UnhandledException += (_, e) => PeekLog.Write($"unhandled: {e.Message}\n{e.Exception}");
+    }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
@@ -26,6 +32,19 @@ public partial class App : Application
         PeekLog.IsEnabled = true;
 #endif
         PeekLog.Write("---- Peeklism starting ----");
+
+        var request = ViewerRequest.Parse(Environment.GetCommandLineArgs().Skip(1));
+        if (request.IsViewer)
+        {
+            // Viewer processes are independent, so Open with still works while the tray is running.
+            // Only the background process owns the gate and keyboard hook.
+            _viewer = new ViewerWindow(request.Paths);
+            _viewer.Closed += (_, _) => { _shutdownSignal?.Dispose(); Exit(); };
+            _shutdownSignal = new AppShutdownSignal(Environment.ProcessId,
+                () => _viewer.DispatcherQueue.TryEnqueue(() => _viewer.Close()));
+            _viewer.Activate();
+            return;
+        }
 
         // Two instances would mean two keyboard hooks fighting over the same space bar.
         _instanceGate = new SingleInstanceGate("Peeklism.App", () => { });
@@ -58,6 +77,10 @@ public partial class App : Application
         _tray.PauseToggled += OnPauseToggled;
         _tray.LaunchAtLoginToggled += OnLaunchAtLoginToggled;
         _tray.AboutRequested += OnAboutRequested;
+        _tray.ViewerRequested += (_, _) =>
+        {
+            if (!ViewerLauncher.Open()) MessageBoxW(0, "無法啟動查看器，請重新啟動 Peeklism。", "Peeklism", 0x10);
+        };
         _tray.ExitRequested += (_, _) => ExitApplication();
 
         // The installer asks a running copy to quit before it replaces the files.
@@ -109,7 +132,7 @@ public partial class App : Application
         MessageBoxW(
             0,
             $"Peeklism {version}\n\n在檔案總管或桌面選取檔案後按空白鍵即可預覽。\n"
-                + "再按一次空白鍵或 Esc 關閉。",
+                + "再按一次空白鍵或 Esc 關閉。\n\n使用「開啟檔案 → Peeklism」或預覽中的「完整查看」\n可開啟原始解析度圖片、影音與完整文件。",
             "關於 Peeklism",
             0x40);
     }

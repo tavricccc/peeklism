@@ -37,6 +37,7 @@ public sealed class TrayIcon : IDisposable
     private const uint CommandLaunchAtLogin = 2;
     private const uint CommandAbout = 3;
     private const uint CommandExit = 4;
+    private const uint CommandViewer = 5;
     private const string HostWindowClassName = "PeeklismTrayHost";
 
     private readonly NativeMethods.WindowProcedure _windowProcedure;
@@ -64,6 +65,8 @@ public sealed class TrayIcon : IDisposable
     public event EventHandler? LaunchAtLoginToggled;
 
     public event EventHandler? AboutRequested;
+
+    public event EventHandler? ViewerRequested;
 
     public event EventHandler? ExitRequested;
 
@@ -190,6 +193,8 @@ public sealed class TrayIcon : IDisposable
 
         try
         {
+            NativeMethods.AppendMenuW(menu, MenuString, CommandViewer, "開啟完整查看器");
+            NativeMethods.AppendMenuW(menu, MenuSeparator, 0, null);
             NativeMethods.AppendMenuW(
                 menu,
                 MenuString | (IsPaused ? MenuChecked : 0),
@@ -217,6 +222,9 @@ public sealed class TrayIcon : IDisposable
                 0);
             switch (command)
             {
+                case CommandViewer:
+                    ViewerRequested?.Invoke(this, EventArgs.Empty);
+                    break;
                 case CommandPause:
                     PauseToggled?.Invoke(this, EventArgs.Empty);
                     break;

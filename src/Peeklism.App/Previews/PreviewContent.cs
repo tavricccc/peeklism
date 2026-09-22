@@ -14,4 +14,12 @@ public sealed record PreviewContent(
     string Subtitle,
     string Glyph,
     int PreferredWidth,
-    int PreferredHeight);
+    int PreferredHeight,
+    Action? Release = null) : IDisposable
+{
+    private int _disposed;
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0) Release?.Invoke();
+    }
+}

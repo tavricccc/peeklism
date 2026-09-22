@@ -61,10 +61,10 @@
                         x:Name="OpenButton"
                         Padding="12,5"
                         Click="OnOpenClick"
-                        AutomationProperties.Name="開啟">
+                        AutomationProperties.Name="在完整查看器中開啟">
                         <StackPanel Orientation="Horizontal" Spacing="7">
                             <FontIcon FontSize="13" Glyph="&#xE8E5;" />
-                            <TextBlock FontSize="13" Text="開啟" />
+                            <TextBlock FontSize="13" Text="完整查看" />
                         </StackPanel>
                     </Button>
                 </StackPanel>

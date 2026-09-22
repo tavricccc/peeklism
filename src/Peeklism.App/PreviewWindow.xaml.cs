@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Peeklism.App.Previews;
 using Peeklism.App.Services;
@@ -19,6 +18,7 @@ public sealed partial class PreviewWindow : Window
     private readonly NoActivateWindow _presenter;
     private readonly AlwaysActiveBackdrop _backdrop = new();
     private string? _currentPath;
+    private PreviewContent? _content;
 
     public PreviewWindow()
     {
@@ -26,6 +26,7 @@ public sealed partial class PreviewWindow : Window
         _presenter = new NoActivateWindow(this);
         _presenter.Configure();
         _backdrop.TryApply(this);
+        Closed += (_, _) => _content?.Dispose();
     }
 
     public bool IsShowing { get; private set; }
@@ -77,6 +78,8 @@ public sealed partial class PreviewWindow : Window
 
     private void Apply(PreviewContent content, string path)
     {
+        _content?.Dispose();
+        _content = content;
         TitleText.Text = content.Title;
         SubtitleText.Text = content.Subtitle;
         KindIcon.Glyph = content.Glyph;
@@ -85,7 +88,7 @@ public sealed partial class PreviewWindow : Window
     }
 
     /// <summary>
-    /// Opens the previewed item with its default application. The window takes no focus, so
+    /// Promotes the preview to the full viewer. The window takes no focus, so
     /// a click reaches the button without the shell ever losing the keyboard.
     /// </summary>
     private void OnOpenClick(object sender, RoutedEventArgs args)
@@ -97,16 +100,7 @@ public sealed partial class PreviewWindow : Window
             return;
         }
 
-        try
-        {
-            Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
-        }
-        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception
-            or IOException
-            or UnauthorizedAccessException)
-        {
-            PeekLog.Write($"opening {path} failed: {exception.Message}");
-        }
+        if (!ViewerLauncher.Open(path)) ShowFor(path, 0);
     }
 
     public void HidePreview()
@@ -120,6 +114,8 @@ public sealed partial class PreviewWindow : Window
         _currentPath = null;
         // Drop the content so a decoded bitmap or a playing media element does not sit in
         // memory while the window is invisible.
+        _content?.Dispose();
+        _content = null;
         ContentHost.Content = null;
         _presenter.HideWindow();
     }

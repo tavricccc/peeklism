@@ -1,3 +1,4 @@
+using Peeklism.Core.Viewing;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -76,13 +77,15 @@ public static class PreviewContentFactory
     {
         var image = new Image
         {
-            Source = new BitmapImage(new Uri(path)),
+            Source = Path.GetExtension(path).Equals(".svg", StringComparison.OrdinalIgnoreCase)
+                ? new SvgImageSource(new Uri(path)) : new BitmapImage(new Uri(path)),
             Stretch = Stretch.Uniform,
             Margin = new Thickness(12),
         };
 
         var (width, height) = MeasureImage(path);
-        return new PreviewContent(image, title, DescribePath(path), ImageGlyph, width, height);
+        return new PreviewContent(image, title, DescribePath(path), ImageGlyph, width, height,
+            () => image.Source = null);
     }
 
     /// <summary>
@@ -147,7 +150,14 @@ public static class PreviewContentFactory
         // Muted by default: a preview is often opened in a quiet room, and one unexpected
         // burst of sound costs more trust than the extra key press to unmute.
         player.MediaPlayer.IsMuted = true;
-        return new PreviewContent(player, title, DescribePath(path), glyph, width, height);
+        return new PreviewContent(player, title, DescribePath(path), glyph, width, height, () =>
+        {
+            var media = player.MediaPlayer;
+            var source = player.Source as MediaSource;
+            player.Source = null;
+            media?.Dispose();
+            source?.Dispose();
+        });
     }
 
     private static PreviewContent CreateText(string path, string title)
@@ -220,8 +230,14 @@ public static class PreviewContentFactory
         // Rendering is asynchronous by nature, so the window opens immediately and the
         // pages arrive into it. Waiting for the first page would cost the whole point of
         // pressing space.
-        _ = RenderPdfPagesAsync(path, pages);
-        return new PreviewContent(scroller, title, DescribePath(path), PdfGlyph, 820, 780);
+        var cancellation = new CancellationTokenSource();
+        _ = RenderPdfPagesAsync(path, pages, cancellation.Token);
+        return new PreviewContent(scroller, title, DescribePath(path), PdfGlyph, 820, 780, () =>
+        {
+            cancellation.Cancel();
+            cancellation.Dispose();
+            pages.Children.Clear();
+        });
     }
 
     /// <summary>
@@ -232,7 +248,7 @@ public static class PreviewContentFactory
     /// is the right document, and rasterising a 400-page report would hold the file and
     /// burn memory for something nobody is going to scroll through here.
     /// </remarks>
-    private static async Task RenderPdfPagesAsync(string path, Panel host)
+    private static async Task RenderPdfPagesAsync(string path, Panel host, CancellationToken cancellationToken)
     {
         const uint pageLimit = 25;
         const uint renderWidth = 1400;
@@ -240,6 +256,7 @@ public static class PreviewContentFactory
         {
             var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(path);
             var document = await Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(file);
+            if (cancellationToken.IsCancellationRequested) return;
             var count = Math.Min(document.PageCount, pageLimit);
             for (uint index = 0; index < count; index++)
             {
@@ -251,6 +268,7 @@ public static class PreviewContentFactory
                 stream.Seek(0);
                 var bitmap = new BitmapImage();
                 await bitmap.SetSourceAsync(stream);
+                if (cancellationToken.IsCancellationRequested) return;
 
                 if (index == 0)
                 {
@@ -283,6 +301,7 @@ public static class PreviewContentFactory
             or System.Runtime.InteropServices.COMException)
         {
             // A password-protected or damaged file surfaces here as a COM failure.
+            if (cancellationToken.IsCancellationRequested) return;
             host.Children.Clear();
             host.Children.Add(CreateMessage($"無法顯示這個 PDF：{exception.Message}"));
         }
