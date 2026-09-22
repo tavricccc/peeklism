@@ -1,3 +1,7 @@
+# Local build tools and design session state
+.tools/
+.impeccable/
+
 # Build output
 .dotnet/
 bin/
