@@ -6,7 +6,7 @@ Peeklism 是獨立產品，與 [Flowlism](https://github.com/tavricccc/flowlism)
 
 ## 現況
 
-0.4.1 是早期版本。最底層、風險最高的那一段——**判斷前景視窗屬於哪種 shell 介面，並讀出它目前選取的檔案**——已經完成，空白鍵、預覽視窗、系統匣與安裝程式也已經可以實際使用；還沒有的是開啟檔案對話框的預覽、設定介面，以及公開下載。
+0.6.0 加入完整唯讀查看器。在檔案總管按空白鍵仍是輕量預覽；使用「開啟檔案 → Peeklism」、點預覽中的「完整查看」，或從系統匣選「開啟完整查看器」，會開啟獨立視窗。開啟檔案對話框的預覽與設定介面仍未完成。安裝檔可從 [GitHub Releases](https://github.com/tavricccc/peeklism/releases/latest) 下載。
 
 | 介面 | 偵測 | 讀取選取項目 |
 | --- | --- | --- |
@@ -20,13 +20,41 @@ Peeklism 是獨立產品，與 [Flowlism](https://github.com/tavricccc/flowlism)
 | 不奪取焦點的預覽視窗（`WS_EX_NOACTIVATE`、置頂、圓角與系統背景） | 完成 |
 | 方向鍵換選取時只換內容，視窗不重新置中或改變大小 | 完成 |
 | 圖片、影片、音訊、純文字、Markdown、PDF、資料夾預覽 | 完成 |
-| 系統匣：暫停、登入時啟動、關於、結束 | 完成 |
+| 完整查看器：原圖縮放／拖移／旋轉、影音控制、完整 PDF、Markdown／文字 | 完成 |
+| 查看器：多選、拖放、同類檔案切換、全螢幕、快捷鍵 | 完成 |
+| Open with 檔案關聯（不修改預設程式） | 完成 |
+| 系統匣：完整查看器、暫停、登入時啟動、關於、結束 | 完成 |
 | 單一實例與安裝／更新／解除安裝 | 完成 |
 | 開啟檔案對話框的預覽（`Peeklism.Native`） | 未開始 |
 | 設定介面（目前所有選項都在系統匣選單裡） | 未開始 |
-| 公開下載網址、程式碼簽章與專案授權 | 未設定 |
+| 公開下載（GitHub Releases） | 已提供 |
+| 程式碼簽章與專案授權 | 未設定 |
 
 檔案總管與桌面不需要注入程式碼：Explorer 會把自己的視窗註冊到行程外可見的 shell 視窗集合，`IShellWindows` 直接就能列舉。開啟檔案對話框屬於別的行程且不會註冊，必須把原生 DLL 載入對方執行緒才能讀取，這部分之後由 `Peeklism.Native` 處理。
+
+## 完整查看器
+
+| 格式 | 完整模式 |
+| --- | --- |
+| 圖片 | 原始解析度解碼、100% 實體像素、符合視窗、縮放、拖移、旋轉；支援 SVG |
+| 影片／音訊 | 播放／暫停、進度、音量、倍速、循環、全螢幕；使用 Windows 解碼器 |
+| PDF | WebView2 原生 PDF 閱讀器：全部頁面、跳頁、縮放、搜尋、文字選取、列印 |
+| Markdown | Markdig 解析標題、表格、巢狀清單、工作清單、程式碼區塊；排版／原始碼切換 |
+| 文字／程式碼 | 讀取完整檔案，不沿用預覽的 256 KB 截斷；支援 UTF-8 與帶 BOM 的 Unicode |
+
+`Ctrl+O` 開啟檔案、`Alt+←/→` 切換檔案、`Ctrl+1` 顯示原圖、`Ctrl+0` 符合視窗、`Ctrl+R` 重新載入、`F11` 全螢幕。文件內可用 `Ctrl+F` 搜尋，影音用空白鍵播放／暫停。查看器內的空白鍵不會關閉視窗。
+
+```powershell
+Peeklism.App.exe --viewer
+Peeklism.App.exe --viewer -- "C:\文件\報告.pdf"
+Peeklism.App.exe "C:\圖片\照片.png"
+```
+
+安裝程式會把 Peeklism 加入支援格式的「開啟檔案」清單，不修改 Windows 的預設程式。也可直接在「選擇電腦上的應用程式」指定 `Peeklism.App.exe`。
+
+PDF 與文件需要 Microsoft Edge WebView2 Runtime。HEIC、AVIF、HEVC 等格式是否可讀取，取決於已安裝的 Windows 解碼器。Markdown 不執行 HTML／JavaScript／MDX 元件，不載入遠端圖片；本機圖片限於文件所在資料夾及其子資料夾。文字超過 64 MiB、圖片超過 1.6 億像素時會明確拒絕，不會假裝已讀完整份檔案。
+
+架構、安全限制與驗證步驟見 [docs/viewer.md](docs/viewer.md)。
 
 ## 系統匣
 

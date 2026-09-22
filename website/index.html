@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Peeklism — 按空白鍵預覽檔案</title>
-<meta name="description" content="Peeklism 是繁體中文的 Windows 11 即時預覽工具。在檔案總管或桌面選好檔案，按一下空白鍵，預覽就在原地出現；方向鍵繼續換檔案，Explorer 從頭到尾不會失去鍵盤。原生 WinUI 3，常駐系統匣。0.4.1 早期版本。">
+<meta name="description" content="Peeklism 是繁體中文的 Windows 11 即時預覽工具。在檔案總管或桌面選好檔案，按一下空白鍵，預覽就在原地出現；方向鍵繼續換檔案，Explorer 從頭到尾不會失去鍵盤。原生 WinUI 3，常駐系統匣。0.6.0 加入圖片、影音、PDF 與 Markdown 完整查看器。">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#191919" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
@@ -69,7 +69,7 @@
         <a class="btn btn-quiet" href="#status">先看現況</a>
       </div>
       <p class="chev-row"><a class="chevron" href="https://github.com/tavricccc/peeklism">在 GitHub 上讀原始碼</a></p>
-      <p class="meta">0.4.1 · Windows 11 build 26100 以上 · x64 · WinUI 3 · 早期版本</p>
+      <p class="meta">0.6.0 · Windows 11 build 26100 以上 · x64 · WinUI 3 · 早期版本</p>
     </div>
     <div class="hero-shot">
       <img src="assets/preview-image.webp" alt="Peeklism 預覽視窗的實際畫面：標題列顯示檔名「Peeklism 品牌概念圖.png」與「PNG 檔案 · 655.8 KB · 2026/09/12 23:07」，右上角是「開啟」按鈕，下方是置中顯示的品牌圖，四周留白。" width="1172" height="867" fetchpriority="high" decoding="async">
@@ -152,12 +152,12 @@
 <section class="band band-b" id="status">
   <div class="wrap">
     <div class="sec-head">
-      <h2>現況：0.4.1 是早期版本</h2>
-      <p>最底層、風險最高的那一段已經完成，空白鍵、預覽視窗、系統匣與安裝程式也可以實際使用。還沒有的是開啟檔案對話框的預覽、設定介面，以及公開下載。下面這張表照著 repo 裡的狀態寫，包含沒完成的那幾項。</p>
+      <h2>現況：0.6.0 加入完整查看器</h2>
+      <p>空白鍵維持快速預覽；使用「開啟檔案 → Peeklism」或預覽中的「完整查看」，會開啟獨立的唯讀查看器。支援原始解析度圖片、影音控制、完整 PDF、Markdown 與文字。開啟檔案對話框的預覽和設定介面仍未完成。</p>
     </div>
     <div class="table-scroll">
       <table class="status-table">
-        <caption class="visually-hidden">Peeklism 0.4.1 各項功能的完成狀態</caption>
+        <caption class="visually-hidden">Peeklism 0.6.0 各項功能的完成狀態</caption>
         <thead><tr><th scope="col">項目</th><th scope="col">狀態</th></tr></thead>
         <tbody>
           <tr><th scope="row">判斷前景視窗屬於哪種 shell 介面</th><td><span class="pill pill-done">完成</span></td></tr>
@@ -166,18 +166,20 @@
           <tr><th scope="row">不奪取焦點的預覽視窗（<code>WS_EX_NOACTIVATE</code>、置頂、圓角與系統背景）</th><td><span class="pill pill-done">完成</span></td></tr>
           <tr><th scope="row">方向鍵換選取時只換內容，視窗不重新置中或改變大小</th><td><span class="pill pill-done">完成</span></td></tr>
           <tr><th scope="row">圖片、影片、音訊、純文字、Markdown、PDF 與資料夾預覽</th><td><span class="pill pill-done">完成</span></td></tr>
-          <tr><th scope="row">系統匣：暫停預覽、登入時啟動、關於、結束</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">完整查看器與 Open with 檔案關聯</th><td><span class="pill pill-done">完成</span></td></tr>
+          <tr><th scope="row">系統匣：完整查看器、暫停預覽、登入時啟動、關於、結束</th><td><span class="pill pill-done">完成</span></td></tr>
           <tr><th scope="row">單一實例，與安裝、更新、解除安裝</th><td><span class="pill pill-done">完成</span></td></tr>
           <tr><th scope="row">讀出開啟檔案對話框的選取項目（需要 <code>Peeklism.Native</code>）</th><td><span class="pill pill-todo">待原生輔助 DLL</span></td></tr>
           <tr><th scope="row">設定介面（目前所有選項都在系統匣選單裡）</th><td><span class="pill pill-todo">未開始</span></td></tr>
-          <tr><th scope="row">公開下載網址、程式碼簽章與專案授權</th><td><span class="pill pill-todo">未設定</span></td></tr>
+          <tr><th scope="row">公開下載（GitHub Releases）</th><td><span class="pill pill-done">已提供</span></td></tr>
+          <tr><th scope="row">程式碼簽章與專案授權</th><td><span class="pill pill-todo">未設定</span></td></tr>
         </tbody>
       </table>
     </div>
     <div class="notes-pair">
       <div>
-        <h3>這裡沒有「下載安裝檔」的按鈕</h3>
-        <p>公開下載網址與程式碼簽章都還沒有設定，所以現階段要自己從原始碼建置，執行 <code>scripts/Publish-Installer.ps1</code> 產出 <code>Peeklism.Setup.exe</code>。放一個連到不存在檔案的按鈕，只是把這件事藏起來。</p>
+        <h3>從 GitHub Releases 下載</h3>
+        <p><a href="https://github.com/tavricccc/peeklism/releases/tag/v0.6.0">0.6.0 發行頁</a>提供 <code>Peeklism.Setup.exe</code> 與 SHA-256 校驗檔。安裝檔尚未簽章，Windows 可能顯示警告。也可執行 <code>scripts/Publish-Installer.ps1</code> 從原始碼建置。</p>
       </div>
       <div>
         <h3>開啟檔案對話框只做到一半</h3>
@@ -338,7 +340,7 @@
           <thead><tr><th scope="col">裝到機器上的是</th><th scope="col">需要什麼</th></tr></thead>
           <tbody>
             <tr><th scope="row">共用版型</th><td>機器上登錄一份共用的 Windows App 執行環境，元件已經在安裝程式裡，不需要連網</td></tr>
-            <tr><th scope="row">自帶版型</th><td>什麼都不需要，整套 SDK 都在安裝資料夾裡</td></tr>
+            <tr><th scope="row">自帶版型</th><td>不需共用 Windows App SDK，執行環境放在安裝資料夾裡</td></tr>
           </tbody>
         </table>
         <p class="table-note">共用版型的 WinUI 來自 Windows 集中保管的 MSIX framework package，整台機器只有一份，Downlism 與 Flowlism 指向同一份。預設安裝到 <code>%LocalAppData%\Programs\Peeklism</code>，並自動建立開始功能表捷徑。</p>
@@ -357,10 +359,10 @@
     <div class="cta-strip">
       <div>
         <p class="cta-title">Windows 11 build 26100 以上、x64</p>
-        <p class="cta-sub">.NET 10 與 Windows App SDK 由安裝程式處理。自己建置需要 .NET 10 SDK，執行安裝程式腳本需要 PowerShell 7（<code>pwsh</code>）；Windows PowerShell 5.1 缺少它用到的 API。想先看看偵測那一層在做什麼，可以執行 <code>dotnet run --project tools/Peeklism.Probe</code>，切到檔案總管點選檔案，每次變化都會印出一行。</p>
+        <p class="cta-sub">.NET 10 與 Windows App SDK 由安裝程式處理。PDF／文件另外需要 Microsoft Edge WebView2 Runtime，部分影音格式需要 Windows 解碼器。自己建置需要 .NET 10 SDK，執行安裝程式腳本需要 PowerShell 7（<code>pwsh</code>）；Windows PowerShell 5.1 缺少它用到的 API。想先看看偵測那一層在做什麼，可以執行 <code>dotnet run --project tools/Peeklism.Probe</code>，切到檔案總管點選檔案，每次變化都會印出一行。</p>
       </div>
       <div class="actions">
-        <a class="btn btn-primary" href="https://github.com/tavricccc/peeklism">在 GitHub 上取得原始碼</a>
+        <a class="btn btn-primary" href="https://github.com/tavricccc/peeklism/releases/download/v0.6.0/Peeklism.Setup.exe">下載 0.6.0 安裝檔</a>
       </div>
     </div>
   </div>
@@ -396,7 +398,7 @@
 
 <footer class="foot">
   <div class="wrap foot-inner">
-    <p class="foot-brand"><img src="assets/peeklism-logo.webp" width="20" height="20" alt=""> Peeklism 0.4.1</p>
+    <p class="foot-brand"><img src="assets/peeklism-logo.webp" width="20" height="20" alt=""> Peeklism 0.6.0</p>
     <nav class="foot-links" aria-label="頁尾">
       <a href="https://github.com/tavricccc/peeklism">GitHub</a>
       <a href="https://tavricccc.github.io/downlism/">Downlism</a>
