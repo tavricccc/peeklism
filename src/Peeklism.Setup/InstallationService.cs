@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Peeklism.Core.Installation;
 using Microsoft.Win32;
+using Peeklism.Core.Viewing;
 
 namespace Peeklism.Setup;
 
@@ -81,6 +82,7 @@ public sealed class InstallationService
                 key.SetValue("NoModify", 1, RegistryValueKind.DWord);
                 key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
                 key.SetValue("DesktopShortcut", desktop ? 1 : 0, RegistryValueKind.DWord);
+                FileAssociations.Register(Path.Combine(target, "Peeklism.App.exe"));
             });
         }
         catch
@@ -125,6 +127,7 @@ public sealed class InstallationService
                 command.StartsWith($"\"{Path.Combine(target, "Peeklism.App.exe")}\"", StringComparison.OrdinalIgnoreCase))
                 run.DeleteValue("Peeklism", false);
         }
+        FileAssociations.Unregister(Path.Combine(target, "Peeklism.App.exe"));
         InstallFiles.RemoveInstallation(target, keepData);
         RemoveMatchingShortcut(StartShortcut, target);
         using (var key = Registry.CurrentUser.OpenSubKey(UninstallKey))
@@ -141,7 +144,7 @@ public sealed class InstallationService
             shortcut.TargetPath = Path.Combine(target, "Peeklism.App.exe");
             shortcut.IconLocation = Path.Combine(target, "Assets", "Peeklism.ico") + ",0";
             shortcut.WorkingDirectory = target;
-            shortcut.Description = "搜尋應用程式與檔案";
+            shortcut.Description = "空白鍵預覽與完整檔案查看器";
             shortcut.Save();
         });
     }
