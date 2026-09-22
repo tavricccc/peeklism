@@ -33,6 +33,10 @@ function Assert-SafeTree([string]$Path) {
 function New-Layout([string]$Destination, [bool]$SelfContainedSdk) {
     $sdk = if ($SelfContainedSdk) { 'true' } else { 'false' }
     foreach ($project in @('src/Peeklism.App/Peeklism.App.csproj', 'src/Peeklism.Setup/Peeklism.Setup.csproj', 'src/Peeklism.Uninstall/Peeklism.Uninstall.csproj')) {
+        # Switching WindowsAppSDKSelfContained does not invalidate every incremental PRI input.
+        # A shared-layout PRI reused in the standalone layout omits WinUI theme resources and
+        # the app fails before its first window. Rebuild resources for each layout explicitly.
+        Invoke-Dotnet @('clean', $project, '-c', 'Release', '-p:Platform=x64', "-p:WindowsAppSDKSelfContained=$sdk")
         Invoke-Dotnet @('publish', $project, '-c', 'Release', '-p:Platform=x64', "-p:AppVersion=$Version", "-p:WindowsAppSDKSelfContained=$sdk", '-o', $Destination)
     }
     # The Windows App SDK metapackage drags its machine-learning stack along with everything
