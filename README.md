@@ -1,12 +1,16 @@
 # Peeklism
 
-在 Windows 上按空白鍵即時預覽檔案 —— 桌面、檔案總管、開啟檔案對話框。
+在 Windows 檔案總管或桌面選取檔案，按空白鍵看一眼；需要仔細閱讀時，再開啟完整查看器。
 
-Peeklism 是獨立產品，與 [Flowlism](https://github.com/tavricccc/flowlism) 啟動器分開安裝、分開更新。兩者共用同一套視覺語言（WinUI 3、Mica、Fluent），但不共用行程，也沒有互相依賴。
+在檔案總管或桌面挑一個檔案，按空白鍵就能看圖片、播放影音、閱讀 PDF、Markdown 和文字，或先查看資料夾內容。按方向鍵換檔時，預覽也跟著換，不用一個個開啟應用程式。
+
+想看得更仔細，可以從預覽開啟完整查看器：圖片能放大、拖移和旋轉；影音有播放進度與倍速；PDF 可以搜尋、選取文字和列印。查看器也支援拖放、多選及全螢幕。Peeklism 常駐系統匣，隨時可以暫停預覽。
+
+從 [GitHub Releases](https://github.com/tavricccc/peeklism/releases/latest) 下載 `Peeklism.Setup.exe`。支援 Windows 11 build 26100 以上、x64。安裝檔包含共用與自帶 Windows App 執行環境兩種版型；安裝在目前使用者帳號，不需要管理員權限。安裝檔尚未簽章。
 
 ## 現況
 
-0.6.0 加入完整唯讀查看器。在檔案總管按空白鍵仍是輕量預覽；使用「開啟檔案 → Peeklism」、點預覽中的「完整查看」，或從系統匣選「開啟完整查看器」，會開啟獨立視窗。開啟檔案對話框的預覽與設定介面仍未完成。安裝檔可從 [GitHub Releases](https://github.com/tavricccc/peeklism/releases/latest) 下載；儲存庫目前為私有，需登入具存取權限的 GitHub 帳號。
+在檔案總管按空白鍵是輕量預覽；使用「開啟檔案 → Peeklism」、點預覽中的「完整查看」，或從系統匣選「開啟完整查看器」，會開啟獨立視窗。開啟檔案對話框的預覽與設定介面仍未完成。
 
 | 介面 | 偵測 | 讀取選取項目 |
 | --- | --- | --- |
@@ -27,7 +31,7 @@ Peeklism 是獨立產品，與 [Flowlism](https://github.com/tavricccc/flowlism)
 | 單一實例與安裝／更新／解除安裝 | 完成 |
 | 開啟檔案對話框的預覽（`Peeklism.Native`） | 未開始 |
 | 設定介面（目前所有選項都在系統匣選單裡） | 未開始 |
-| GitHub Releases 安裝檔（需儲存庫存取權限） | 已提供 |
+| GitHub Releases 安裝檔 | 已提供 |
 | 程式碼簽章與專案授權 | 未設定 |
 
 檔案總管與桌面不需要注入程式碼：Explorer 會把自己的視窗註冊到行程外可見的 shell 視窗集合，`IShellWindows` 直接就能列舉。開啟檔案對話框屬於別的行程且不會註冊，必須把原生 DLL 載入對方執行緒才能讀取，這部分之後由 `Peeklism.Native` 處理。
