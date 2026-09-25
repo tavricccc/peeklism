@@ -16,6 +16,15 @@ public sealed class ViewerTests
     public void EmptyViewerLaunchIsExplicit() => Assert.True(ViewerRequest.Parse(["--viewer"]).IsViewer);
 
     [Fact]
+    public void SettingsLaunchKeepsPreviewProcessAndOpensSettings()
+    {
+        var request = ViewerRequest.Parse(["--settings"]);
+        Assert.False(request.IsViewer);
+        Assert.True(request.OpenSettings);
+        Assert.Empty(request.Paths);
+    }
+
+    [Fact]
     public void FileLaunchPreservesUnicodeSpacesAndMissingPaths()
     {
         string[] paths = [@"C:\相片\旅行 照片.png", @"C:\missing.pdf"];

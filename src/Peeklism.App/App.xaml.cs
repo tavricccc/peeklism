@@ -23,6 +23,7 @@ public partial class App : Application
     private readonly LoginStartupService _loginStartup = new();
     private PreviewSettings _settings = PreviewSettings.Load();
     private bool _isExiting;
+    private bool _openSettingsWhenReady;
 
     public App()
     {
@@ -51,7 +52,12 @@ public partial class App : Application
         }
 
         // Two instances would mean two keyboard hooks fighting over the same space bar.
-        _instanceGate = new SingleInstanceGate("Peeklism.App", () => { });
+        var dispatcher = DispatcherQueue.GetForCurrentThread();
+        _instanceGate = new SingleInstanceGate("Peeklism.App", () => dispatcher.TryEnqueue(() =>
+        {
+            if (_tray is null) _openSettingsWhenReady = true;
+            else OpenSettings();
+        }));
         if (!_instanceGate.IsPrimary)
         {
             PeekLog.Write("another instance is already running; exiting");
@@ -86,11 +92,11 @@ public partial class App : Application
         _tray.ExitRequested += (_, _) => ExitApplication();
 
         // The installer asks a running copy to quit before it replaces the files.
-        var dispatcher = DispatcherQueue.GetForCurrentThread();
         _shutdownSignal = new AppShutdownSignal(
             Environment.ProcessId,
             () => dispatcher.TryEnqueue(ExitApplication));
         PeekLog.Write($"ready; log at {PeekLog.FilePath}");
+        if (request.OpenSettings || _openSettingsWhenReady) OpenSettings();
     }
 
     private void OnPauseToggled(object? sender, EventArgs args)
