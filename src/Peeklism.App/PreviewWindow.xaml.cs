@@ -33,6 +33,8 @@ public sealed partial class PreviewWindow : Window
 
     public string? CurrentPath => _currentPath;
 
+    public void SetAlwaysOnTop(bool enabled) => _presenter.SetAlwaysOnTop(enabled);
+
     /// <summary>
     /// Renders the window once, off screen, so the first real preview pays no XAML warm-up
     /// cost. Peeklism lives in the tray, which makes this a one-time price at start-up.

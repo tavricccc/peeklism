@@ -130,24 +130,24 @@ internal sealed class DocumentViewer : IDisposable
     {
         token.ThrowIfCancellationRequested();
         if (LocalDocumentResources.ResolveImage(_directory, uri) is not { } image) return null;
-        using var file = new FileStream(image.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        var length = file.Length;
-        if (length > 32 * 1024 * 1024) return null;
-        if (Interlocked.Add(ref _assetBytes, length) > 128L * 1024 * 1024)
+        FileStream? file = null;
+        try
         {
-            Interlocked.Add(ref _assetBytes, -length);
-            return null;
-        }
-        var bytes = new byte[(int)length];
-        var position = 0;
-        while (position < bytes.Length)
-        {
+            file = new FileStream(image.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
+                bufferSize: 65536, FileOptions.SequentialScan);
+            var length = file.Length;
+            if (length > 32 * 1024 * 1024) return null;
             token.ThrowIfCancellationRequested();
-            var read = file.Read(bytes, position, Math.Min(65536, bytes.Length - position));
-            if (read == 0) break;
-            position += read;
+            if (Interlocked.Add(ref _assetBytes, length) > 128L * 1024 * 1024)
+            {
+                Interlocked.Add(ref _assetBytes, -length);
+                return null;
+            }
+            var stream = file;
+            file = null;
+            return (stream, image.ContentType);
         }
-        return (new MemoryStream(bytes, 0, position, writable: false), image.ContentType);
+        finally { file?.Dispose(); }
     }
 
     public void Dispose()

@@ -21,7 +21,8 @@ public sealed class PreviewController : IDisposable
     /// </summary>
     private static readonly TimeSpan SelectionPollInterval = TimeSpan.FromMilliseconds(150);
 
-    private readonly PreviewWindow _window;
+    private readonly Func<PreviewWindow> _createWindow;
+    private PreviewWindow? _window;
     private readonly IShellSelectionProvider _selection;
     private readonly DispatcherQueue _dispatcher;
     private readonly ForegroundWatcher _foreground = new();
@@ -29,11 +30,11 @@ public sealed class PreviewController : IDisposable
     private readonly DispatcherQueueTimer _selectionPoll;
     private bool _disposed;
 
-    public PreviewController(PreviewWindow window, IShellSelectionProvider selection)
+    public PreviewController(Func<PreviewWindow> createWindow, IShellSelectionProvider selection)
     {
-        _window = window;
+        _createWindow = createWindow;
         _selection = selection;
-        _dispatcher = window.DispatcherQueue;
+        _dispatcher = DispatcherQueue.GetForCurrentThread();
         _selectionPoll = _dispatcher.CreateTimer();
         _selectionPoll.Interval = SelectionPollInterval;
         _selectionPoll.Tick += (_, _) => RefreshSelection();
@@ -121,7 +122,7 @@ public sealed class PreviewController : IDisposable
     {
         PeekLog.Write(
             $"key vk=0x{args.VirtualKey:X} modifiers={args.HasModifiers} "
-            + $"surface={_foreground.CurrentWindowType} showing={_window.IsShowing}");
+            + $"surface={_foreground.CurrentWindowType} showing={_window?.IsShowing == true}");
         if (args.HasModifiers || _foreground.CurrentWindowType == FocusedWindowType.Invalid)
         {
             return;
@@ -130,7 +131,7 @@ public sealed class PreviewController : IDisposable
         switch (args.VirtualKey)
         {
             case VirtualKeySpace:
-                if (_window.IsShowing)
+                if (_window?.IsShowing == true)
                 {
                     args.Handled = true;
                     _dispatcher.TryEnqueue(Hide);
@@ -150,12 +151,12 @@ public sealed class PreviewController : IDisposable
                 _dispatcher.TryEnqueue(Show);
                 return;
 
-            case VirtualKeyEscape when _window.IsShowing:
+            case VirtualKeyEscape when _window?.IsShowing == true:
                 args.Handled = true;
                 _dispatcher.TryEnqueue(Hide);
                 return;
 
-            case VirtualKeyReturn when _window.IsShowing:
+            case VirtualKeyReturn when _window?.IsShowing == true:
                 // Let Explorer open the item; the preview has served its purpose.
                 _dispatcher.TryEnqueue(Hide);
                 return;
@@ -173,19 +174,19 @@ public sealed class PreviewController : IDisposable
             return;
         }
 
-        _window.ShowFor(selection.Path!, windowHandle);
+        (_window ??= _createWindow()).ShowFor(selection.Path!, windowHandle);
         _selectionPoll.Start();
     }
 
     private void Hide()
     {
         _selectionPoll.Stop();
-        _window.HidePreview();
+        _window?.HidePreview();
     }
 
     private void RefreshSelection()
     {
-        if (!_window.IsShowing)
+        if (_window?.IsShowing != true)
         {
             _selectionPoll.Stop();
             return;

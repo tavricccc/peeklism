@@ -1,9 +1,11 @@
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Dispatching;
 using Peeklism.App.Services;
 using Peeklism.Core.Diagnostics;
 using Peeklism.Core.Lifecycle;
 using Peeklism.Core.Shell;
+using Peeklism.Core.Settings;
 using Peeklism.Core.Viewing;
 
 namespace Peeklism.App;
@@ -17,7 +19,9 @@ public partial class App : Application
     private ViewerWindow? _viewer;
     private PreviewController? _controller;
     private TrayIcon? _tray;
+    private SettingsWindow? _settingsWindow;
     private readonly LoginStartupService _loginStartup = new();
+    private PreviewSettings _settings = PreviewSettings.Load();
     private bool _isExiting;
 
     public App()
@@ -57,26 +61,24 @@ public partial class App : Application
         }
 
         _shellExecutor = new StaExecutor("Peeklism.Shell.Sta");
-        _window = new PreviewWindow();
-
-        // Paid once at start-up, in the tray, rather than on the first space bar press.
-        _window.WarmUp();
+        if (_settings.PreloadPreview) GetPreviewWindow().WarmUp();
 
         // Isolated look check: one preview, with no keyboard hook and no foreground watcher,
         // so the window can be worked on without File Explorer and without the controller
         // hiding it the moment focus moves elsewhere.
         if (Environment.GetEnvironmentVariable("PEEKLISM_PREVIEW") is { Length: > 0 } preview)
         {
-            _window.ShowFor(preview, 0);
+            GetPreviewWindow().ShowFor(preview, 0);
             PeekLog.Write($"look check: {preview}");
             return;
         }
 
-        _controller = new PreviewController(_window, new ShellSelectionProvider(_shellExecutor));
+        _controller = new PreviewController(GetPreviewWindow, new ShellSelectionProvider(_shellExecutor));
         _tray = new TrayIcon { LaunchesAtLogin = _loginStartup.IsEnabled() };
         _tray.PauseToggled += OnPauseToggled;
         _tray.LaunchAtLoginToggled += OnLaunchAtLoginToggled;
         _tray.AboutRequested += OnAboutRequested;
+        _tray.SettingsRequested += (_, _) => OpenSettings();
         _tray.ViewerRequested += (_, _) =>
         {
             if (!ViewerLauncher.Open()) MessageBoxW(0, "無法啟動查看器，請重新啟動 Peeklism。", "Peeklism", 0x10);
@@ -84,9 +86,10 @@ public partial class App : Application
         _tray.ExitRequested += (_, _) => ExitApplication();
 
         // The installer asks a running copy to quit before it replaces the files.
+        var dispatcher = DispatcherQueue.GetForCurrentThread();
         _shutdownSignal = new AppShutdownSignal(
             Environment.ProcessId,
-            () => _window.DispatcherQueue.TryEnqueue(ExitApplication));
+            () => dispatcher.TryEnqueue(ExitApplication));
         PeekLog.Write($"ready; log at {PeekLog.FilePath}");
     }
 
@@ -114,8 +117,7 @@ public partial class App : Application
         try
         {
             var enable = !_tray.LaunchesAtLogin;
-            _loginStartup.SetEnabled(enable);
-            _tray.LaunchesAtLogin = enable;
+            SetLaunchAtLogin(enable);
             PeekLog.Write($"launch at login {(enable ? "enabled" : "disabled")}");
         }
         catch (Exception exception) when (exception is InvalidOperationException or UnauthorizedAccessException)
@@ -124,6 +126,32 @@ public partial class App : Application
             PeekLog.Write($"launch at login failed: {exception.Message}");
             _tray.LaunchesAtLogin = _loginStartup.IsEnabled();
         }
+    }
+
+    private PreviewWindow GetPreviewWindow()
+    {
+        if (_window is null)
+        {
+            _window = new PreviewWindow();
+            _window.SetAlwaysOnTop(_settings.AlwaysOnTop);
+        }
+        return _window;
+    }
+
+    private void SetLaunchAtLogin(bool enabled)
+    {
+        _loginStartup.SetEnabled(enabled);
+        if (_tray is not null) _tray.LaunchesAtLogin = enabled;
+    }
+
+    private void OpenSettings()
+    {
+        if (_settingsWindow is not null) { _settingsWindow.Activate(); return; }
+        var window = new SettingsWindow(_settings, _loginStartup.IsEnabled, SetLaunchAtLogin,
+            settings => { _settings = settings; _window?.SetAlwaysOnTop(settings.AlwaysOnTop); });
+        _settingsWindow = window;
+        window.Closed += (_, _) => _settingsWindow = null;
+        window.Activate();
     }
 
     private void OnAboutRequested(object? sender, EventArgs args)
@@ -147,6 +175,7 @@ public partial class App : Application
         _isExiting = true;
         PeekLog.Write("exiting");
         _tray?.Dispose();
+        _settingsWindow?.Close();
         _controller?.Dispose();
         _shutdownSignal?.Dispose();
         _window?.Close();

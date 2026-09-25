@@ -22,9 +22,11 @@ public sealed class NoActivateWindow
     private const long ToolWindowExtendedStyle = 0x00000080L;
     private const long NoActivateExtendedStyle = 0x08000000L;
     private static readonly nint TopMostWindow = new(-1);
+    private static readonly nint TopWindow = 0;
 
     private readonly nint _windowHandle;
     private readonly AppWindow _appWindow;
+    private bool _alwaysOnTop = true;
 
     public NoActivateWindow(Window window)
     {
@@ -46,7 +48,7 @@ public sealed class NoActivateWindow
             presenter.IsResizable = false;
             presenter.IsMaximizable = false;
             presenter.IsMinimizable = false;
-            presenter.IsAlwaysOnTop = true;
+            presenter.IsAlwaysOnTop = _alwaysOnTop;
         }
 
         // Only the extended styles are ours: stay off the taskbar and out of Alt+Tab, and
@@ -69,12 +71,19 @@ public sealed class NoActivateWindow
         _appWindow.Show(activateWindow: false);
         NativeMethods.SetWindowPos(
             _windowHandle,
-            TopMostWindow,
+            _alwaysOnTop ? TopMostWindow : TopWindow,
             0,
             0,
             0,
             0,
             0x0001 | 0x0002 | 0x0010 | 0x0040); // NOSIZE | NOMOVE | NOACTIVATE | SHOWWINDOW
+    }
+
+    public void SetAlwaysOnTop(bool enabled)
+    {
+        _alwaysOnTop = enabled;
+        if (_appWindow.Presenter is OverlappedPresenter presenter) presenter.IsAlwaysOnTop = enabled;
+        if (_appWindow.IsVisible) ShowWithoutActivating();
     }
 
     public void HideWindow() => _appWindow.Hide();
